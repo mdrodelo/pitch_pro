@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  backend:
+    volumes:
+      - static:/static
+    env_file:
+      - .env
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=user_pass
+      - POSTGRES_DB=pitch_pro_db
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - frontend:/app/build
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - static:/static
+      - frontend:/var/www/frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  static:
+  frontend:

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+//import axios from 'axios';
 import './AccountCreation.css'; // Import your CSS file
-
+/*
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true;
@@ -9,16 +10,17 @@ axios.defaults.withCredentials = true;
 const client = axios.create({
   baseURL: "http://127.0.0.1:8000"
 });
-
+*/
 const AccountCreation = ({ history }) => {
   const [registrationToggle, setRegistrationToggle] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [username, setUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleCreateAccount = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/register/', {
+      const response = await fetch('http://127.0.0.1:8000/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +37,7 @@ const AccountCreation = ({ history }) => {
         console.log('Account creation successful');
 
         // Redirect to the login page
-        history.push('/login');
+        navigate('/login');
       } else {
         // Handle account creation error, display error message, etc.
         console.error('Account creation failed');
