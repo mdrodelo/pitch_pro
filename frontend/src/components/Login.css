@@ -1,0 +1,48 @@
+.login-container {
+  max-width: 300px; /* Adjust the width of the container */
+  margin: 0 auto;
+  padding: 20px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.label-input {
+  display: block;
+  margin-bottom: 15px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px; /* Adjust the padding for a taller input field */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 16px; /* Set font size for the input text */
+}
+
+.login-button {
+  background-color: #4caf50;
+  color: #fff;
+  padding: 14px; /* Adjust the padding for a taller button */
+  width: 100%; /* Make the button full-width */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px; /* Set font size for the button text */
+  font-weight: bold; /* Make the font bold */
+  margin-bottom: 10px; /* Add margin to separate the buttons */
+}
+
+.create-account-button {
+  background-color: #3498db; /* Change the color for the new button */
+  color: #fff;
+  padding: 12px; /* Adjust the padding for a standard height button */
+  width: 70%; /* Make the button less wide */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px; /* Set font size for the button text */
+  font-weight: bold; /* Make the font bold */
+}

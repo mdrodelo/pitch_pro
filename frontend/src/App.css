@@ -14,14 +14,38 @@
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+  background-color: #4caf50;
+  padding: 20px;
+  font-size: 25px; /* Set font size to 25px */
+  font-family: 'Brush Script MT', cursive; /* Use Brush Script for the header */
+  color: black;
+}
+
+.nav-bar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background-color: #4caf50; /* Green background color for the navigation bar */
+  justify-content: space-between;
+}
+
+.left-nav {
+  display: flex;
+}
+
+.right-nav {
+  display: flex;
+}
+
+.nav-link {
+  padding: 10px;
+  color: black;
+  text-decoration: none;
+  font-family: 'Arial', sans-serif; /* Use Sans-serif for the tabs */
+  font-size: 25px; /* Set font size to 25px */
+  font-weight: bold; /* Set font weight to bold */
+}
+
+.nav-link:hover {
+  background-color: #45a049; /* Darker green color on hover */
 }
 
 .App-link {
