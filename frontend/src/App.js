@@ -181,6 +181,10 @@ function App() {
         </div>
               )
             }
+            {/*This is where the Home route is supposed to be to show up before a user logs in*/}
+            {/*<Routes>*/}
+            {/*  <Route path="/" exact element={<Home />} />*/}
+            {/*  </Routes>*/}
           </div>
         </BrowserRouter>
   );
