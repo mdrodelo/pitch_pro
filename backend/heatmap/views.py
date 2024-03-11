@@ -1,9 +1,14 @@
 from django.shortcuts import render
 from rest_framework import viewsets
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework import permissions, status
+from .serializers import  GameDataSerializer
 from rest_framework.response import Response
 import base64
+
+#from ..user_api.models import AppUser
+#from models import GameData
 
 # Imports that should be moved to backend
 from mplsoccer import Pitch, Sbopen
@@ -14,7 +19,6 @@ import io
 
 class Heatmap(APIView):
     permission_classes = (permissions.AllowAny,)
-    print("Reached here")
 
     def get(self, request):
         parser = Sbopen()
@@ -32,3 +36,13 @@ class Heatmap(APIView):
         res = res.decode('utf-8')
         data = "data:image/jpeg;base64," + res
         return Response({'heatmap': data}, status=status.HTTP_200_OK)
+
+
+class GameData(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (SessionAuthentication,)
+
+    def get(self, request):
+        # GameData.get(self, request)
+        # serializer = GameDataSerializer(request.user)
+        return Response({'data': GameData.get(self, request={AppUser.user_id})}, status=status.HTTP_200_OK)
