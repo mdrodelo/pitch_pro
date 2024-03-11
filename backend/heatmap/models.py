@@ -14,7 +14,6 @@ class PlayerMovement(models.Model):
     user_id = models.ForeignKey(AppUser, on_delete=models.DO_NOTHING, related_name='+')
     game_id = models.ForeignKey(GameData, on_delete=models.DO_NOTHING)
     movement_id = models.BigAutoField(primary_key=True)  # MovementID as a primary key
-    session_date = models.DateField()  # SessionDate
     timestamp = models.TimeField()  # Timestamp
     latitude = models.FloatField()  # Latitude
     longitude = models.FloatField()  # Longitude
