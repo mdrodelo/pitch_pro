@@ -4,6 +4,7 @@ from user_api.models import AppUser
 
 class GameData(models.Model):
     game_id = models.AutoField(primary_key=True)
+    game_title = models.CharField(max_length=50, null=True)
     user_id = models.ForeignKey(AppUser, on_delete=models.DO_NOTHING, related_name='+')
     game_date = models.DateField()
     field_parameters = models.TextField()
