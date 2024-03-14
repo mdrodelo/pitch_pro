@@ -1,7 +1,9 @@
 import React from 'react';
 import { useState } from 'react';
+import {MapContainer, Marker, Popup, TileLayer, useMap} from 'react-leaflet';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import './MyData.css';
 import axios from "axios";
 
 const client = axios.create({
@@ -16,6 +18,12 @@ const data = [
 
 function MyData() {
     const [addDataToggle, setAddDataToggle] = useState(false);
+    const [file, setFile] = useState();
+
+    function handleFileChange(e) {
+        setFile(e.target.files[0]);
+    }
+
 
     function update_mydata_btn() {
         if (addDataToggle) {
@@ -29,17 +37,10 @@ function MyData() {
 
     function submitData(e) {
         e.preventDefault();
-        client.post(
-            "/api/uploadgame",
-            {
-                title: "test",
-                date: "01/02/2024",
-                field_parameters: "-81, 28, -81.5, 29.5"
-            }
-        ).then(function(res) {
-            console.log("Upload successful");
-            console.log(res);
-        });
+        const formData = new FormData();
+        formData.append('file', file);
+        //formData.append('fileName', file.name);
+
     }
 
     return (
@@ -49,12 +50,24 @@ function MyData() {
             {
                 addDataToggle ? (
                     <div>
-                    <div>Add data</div>
-                    <Form onSubmit={e => submitData(e)}>
-                        <Button variant="primary" type="submit">
-                            Submit
-                        </Button>
-                    </Form>
+                        <div>Add data</div>
+                        <Form onSubmit={submitData}>
+                            <input type="file" onChange={handleFileChange}/>
+                            <Button variant="primary" type="submit">
+                                Submit
+                            </Button>
+                        </Form>
+                        <div id="map"></div>
+                        <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+                            <Marker position={[51.505, -0.09]}>
+                                <Popup>
+                                    CSS3 popup.
+                                </Popup>
+                            </Marker>
+                        </MapContainer>
+
                     </div>
                 ) : (
                     <table>
