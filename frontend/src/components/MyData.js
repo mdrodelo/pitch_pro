@@ -1,10 +1,27 @@
 import React from 'react';
-import { useState } from 'react';
-import {MapContainer, Marker, Popup, TileLayer, useMap} from 'react-leaflet';
+import { useState, useEffect } from 'react';
+import { MapContainer, Marker, Popup, TileLayer, Polyline } from 'react-leaflet';
+import { useMap } from 'react-leaflet/hooks';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
 import axios from "axios";
+
+/*
+<MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+    <Marker position={[51.505, -0.09]}>
+        <Popup>
+            CSS3 popup.
+        </Popup>
+    </Marker>
+</MapContainer>
+
+ */
+
 
 const client = axios.create({
   baseURL: "http://127.0.0.1:8000"
@@ -22,8 +39,14 @@ function MyData() {
 
     function handleFileChange(e) {
         setFile(e.target.files[0]);
-    }
+        //CreateGpxPolyline();
+        const map = L.map('map').setView([0,0], 2);
 
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+    }
 
     function update_mydata_btn() {
         if (addDataToggle) {
@@ -35,14 +58,6 @@ function MyData() {
         }
     }
 
-    function submitData(e) {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('file', file);
-        //formData.append('fileName', file.name);
-
-    }
-
     return (
         <div>
             <div>MyData Screen Content</div>
@@ -51,23 +66,8 @@ function MyData() {
                 addDataToggle ? (
                     <div>
                         <div>Add data</div>
-                        <Form onSubmit={submitData}>
-                            <input type="file" onChange={handleFileChange}/>
-                            <Button variant="primary" type="submit">
-                                Submit
-                            </Button>
-                        </Form>
+                        <input type="file" onChange={handleFileChange}/>
                         <div id="map"></div>
-                        <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
-                            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                            <Marker position={[51.505, -0.09]}>
-                                <Popup>
-                                    CSS3 popup.
-                                </Popup>
-                            </Marker>
-                        </MapContainer>
-
                     </div>
                 ) : (
                     <table>
@@ -86,7 +86,6 @@ function MyData() {
                             )
                         })}
                     </table>
-
                 )
             }
         </div>
