@@ -1,6 +1,10 @@
-#map { height: 180px; }
+#map { height: 400px; }
 
 .leaflet-container {
   width: 100vw;
   height: 100vh;
+}
+
+.sr-only {
+    display: none;
 }
