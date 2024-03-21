@@ -137,11 +137,13 @@ function App() {
 
                 </div>
                 <div className="right-nav">
-                  <Link to="/login" className="nav-link">LOGIN</Link>
                   <Button id="form_btn" onClick={update_form_btn} variant="light">Register</Button>
                 </div>
               </nav>
             </header>
+            <Routes>
+              <Route path="/" exact element={<Home />} />
+            </Routes>
             {
               registrationToggle ? (
                   <div className="login-container" >
@@ -190,106 +192,3 @@ function App() {
 
 
 export default App;
-
-/*import React from 'react';
-import { useState, useEffect, Component} from 'react';
-import logo from './logo.svg';
-import { BrowserRouter, Route, Link, Routes } from 'react-router-dom';
-import Home from './components/Home';
-import About from './components/About';
-import Instructions from './components/Instructions';
-import MyData from './components/MyData';
-import Login from './components/Login';
-import AccountCreation from "./components/AccountCreation";
-import './App.css';
-import axios from "axios";
-
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-axios.defaults.withCredentials = true;
-
-const client = axios.create({
-  baseURL: "http://127.0.0.1:8000"
-});
-
-function App() {
-  const [currentUser, setCurrentUser] = useState();
-  const [registrationToggle, setRegistrationToggle] = useState(false);
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  console.log(currentUser);
-
-  useEffect(() => {
-    client.get("/api/user")
-    .then(function(res) {
-      setCurrentUser(true);
-    })
-    .catch(function(error) {
-      setCurrentUser(false);
-    });
-  }, []);
-  console.log(currentUser);
-
-  if (currentUser) {
-    return (
-        <BrowserRouter>
-          <div className="App">
-            <header className="App-header">
-              <h1>PitchPro</h1>
-              <nav className="nav-bar">
-                <div className="left-nav">
-                  <Link to="/" className="nav-link">HOME</Link>
-                  <Link to="/about" className="nav-link">ABOUT</Link>
-                  <Link to="/instructions" className="nav-link">INSTRUCTIONS</Link>
-                  <Link to="/mydata" className="nav-link">MY DATA</Link>
-                </div>
-                <div className="right-nav">
-                  <Link to="/logout" className="nav-link">LOG OUT</Link>
-                </div>
-              </nav>
-            </header>
-            <Routes>
-              <Route path="/about" element={<About />} />
-              <Route path="/instructions" element={<Instructions />} />
-              <Route path="/mydata" element={<MyData />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/account-creation" element={<AccountCreation />} />
-              <Route path="/" exact element={<Home />} />
-              </Routes>
-          </div>
-        </BrowserRouter>
-    );
-  }
-  return (
-<BrowserRouter>
-      <div className="App">
-        <header className="App-header">
-          <h1>PitchPro</h1>
-          <nav className="nav-bar">
-            <div className="left-nav">
-              <Link to="/" className="nav-link">HOME</Link>
-              <Link to="/about" className="nav-link">ABOUT</Link>
-              <Link to="/instructions" className="nav-link">INSTRUCTIONS</Link>
-              <Link to="/mydata" className="nav-link">MY DATA</Link>
-            </div>
-            <div className="right-nav">
-              <Link to="/login" className="nav-link">LOGIN</Link>
-            </div>
-          </nav>
-        </header>
-        <Routes>
-          <Route path="/about" element={<About />} />
-          <Route path="/instructions" element={<Instructions />} />
-          <Route path="/mydata" element={<MyData />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/account-creation" element={<AccountCreation />} />
-          <Route path="/" exact element={<Home />} />
-          </Routes>
-      </div>
-    </BrowserRouter>
-  );
-}
-
-export default App;
-*/
