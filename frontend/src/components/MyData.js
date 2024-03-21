@@ -10,6 +10,8 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
 import axios from "axios";
+import styled from 'styled-components';
+import img from '../images/image3.svg';
 
 /*
 <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
@@ -23,7 +25,119 @@ import axios from "axios";
 </MapContainer>
 
  */
+const HomeContainer = styled.div`
+    color: #fff;
+    background-color: #030c12;
+`;
 
+const SectionContainer = styled.div`
+    width: 100%;
+    display: grid;
+    height: 860px;
+    padding: 0 24px;
+    justify-content: center;
+    z-index: 1;
+    max-width: 1100px;
+    margin-right: auto;
+    margin-left: auto;
+`;
+
+const GameLogSection = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-columns: minmax(auto, 1fr);
+    align-items: center;
+    grid-template-areas: 'col1 col2';
+`;
+
+const NewGameSection = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-columns: minmax(auto, 1fr);
+    align-items: center;
+    grid-template-areas: 'col1 col2';
+`;
+
+const Column1 = styled.div`
+    margin-bottom: 15px;
+    padding: 0 15px;
+    grid-area: col1;
+`;
+
+const TextContent = styled.div`
+    max-width: 540px;
+    padding-top: 0;
+    padding-bottom: 60px;
+`;
+
+const Column2 = styled.div`
+    margin-bottom: 15px;
+    padding: 0 15px;
+    grid-area: col2;
+`;
+
+const ImgContainer = styled.div`
+    max-width: 555px;
+    display: flex;
+    justify-content: flex-start;
+`;
+
+const Img = styled.img`
+    padding-right: 0;
+    border: 0;
+    max-width: 100%;
+    vertical-align: middle;
+    display: inline-block;
+    max-height: 500px;
+`;
+
+const StyledTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    color: #f7f8fa;
+`;
+
+const StyledTh = styled.th`
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    background-color: #4CAF50;
+    color: white;
+`;
+
+const StyledTd = styled.td`
+    border: 1px solid #ddd;
+    padding: 8px;
+`;
+
+const AddDataDiv = styled.div`
+    margin-bottom: 35px;
+    font-size: 18px;
+    line-height: 24px;
+    color: #f7f8fa;
+`;
+
+const StyledButton = styled.button`
+    display: flex;
+    align-items: center;
+    border-radius: 50px;
+    background: #76e4e0;
+    white-space: nowrap;
+    padding: 10px 22px;
+    color: #000;
+    font-size: 16px;
+    outline: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+
+    &:hover {
+        transition: all 0.2s ease-in-out;
+        background: #abdae4;
+        color: #000;
+    }
+`;
 
 const client = axios.create({
   baseURL: "http://127.0.0.1:8000"
@@ -36,8 +150,8 @@ const data = [
 ]
 
 function MyData() {
-    const [addDataToggle, setAddDataToggle] = useState(false);
     const [file, setFile] = useState(null);
+    const [showImage, setShowImage] = useState(false);
 
     function handleFileChange(e) {
         //const mapRef = useRef(null);
@@ -52,7 +166,7 @@ function MyData() {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            new L.GPX(file, {
+            new L.GPX(e.target.result, {
                 async: true,
                 //ref: {mapRef},
                 drawControl: true,
@@ -89,53 +203,60 @@ function MyData() {
             })
         }
         fileReader.readAsText(e.target.files[0], "UTF-8");
-
-        //setFile(e.target.files[0]);
-        //CreateGpxPolyline();
-
     }
 
-    function update_mydata_btn() {
-        if (addDataToggle) {
-            document.getElementById("data_toggle").innerHTML = "Upload New Game";
-            setAddDataToggle(false);
-        } else {
-            document.getElementById("data_toggle").innerHTML = "View Data";
-            setAddDataToggle(true);
-        }
-    }
 
     return (
         <div>
-            <div>MyData Screen Content</div>
-            <button id="data_toggle" onClick={update_mydata_btn}>Upload</button>
-            {
-                addDataToggle ? (
-                    <div>
-                        <div>Add data</div>
-                        <input type="file" accept='.gpx' onChange={handleFileChange}/>
-                        <div id="map"></div>
-                    </div>
-                ) : (
-                    <table>
-                        <tr>
-                            <th>Title</th>
-                            <th>Date</th>
-                            <th></th>
-                        </tr>
-                        {data.map((val, key) => {
-                            return (
-                                <tr key={key}>
-                                    <td>{val.title}</td>
-                                    <td>{val.date}</td>
-                                    <td><button>View</button></td>
+            <HomeContainer>
+                <SectionContainer>
+                    <GameLogSection>
+                        <Column1>
+                        <TextContent>
+                            <StyledTable>
+                                <tr>
+                                    <StyledTh>Title</StyledTh>
+                                    <StyledTh>Date</StyledTh>
+                                    <StyledTh></StyledTh>
                                 </tr>
-                            )
-                        })}
-                    </table>
-                )
-            }
-        </div>
+                                {data.map((val, key) => {
+                                    return (
+                                        <tr key={key}>
+                                            <StyledTd>{val.title}</StyledTd>
+                                            <StyledTd>{val.date}</StyledTd>
+                                            <StyledTd><StyledButton onClick={() => setShowImage(prevShowImage => !prevShowImage)}>View</StyledButton></StyledTd>
+                                        </tr>
+                                    )
+                                })}
+                            </StyledTable>
+                        </TextContent>
+                        </Column1>
+                        <Column2>
+                            <ImgContainer>
+                                {showImage && <Img src={img} alt='all' />}
+                            </ImgContainer>
+                        </Column2>
+                    </GameLogSection>
+                </SectionContainer>
+            </HomeContainer>
+            <HomeContainer>
+                <SectionContainer>
+                    <NewGameSection>
+                        <Column1>
+                        <TextContent>
+                            <AddDataDiv>Add data</AddDataDiv>
+                            <input type="file" accept='.gpx' onChange={handleFileChange}/>
+                        </TextContent>
+                        </Column1>
+                        <Column2>
+                            <ImgContainer>
+                                <div id="map"></div>
+                            </ImgContainer>
+                        </Column2>
+                    </NewGameSection>
+                </SectionContainer>
+            </HomeContainer> 
+        </div>                        
     );
 }
 

@@ -1,93 +1,143 @@
 import React, { useEffect, useState }from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css'; // Import your CSS file
+import { FaTimes } from 'react-icons/fa';
+import Cookies from 'js-cookie';
+import { useNavigate } from 'react-router-dom';
+
+axios.defaults.xsrfCookieName = 'csrftoken';
+axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+axios.defaults.withCredentials = true;
 
 const client = axios.create({
   baseURL: "http://127.0.0.1:8000"
 });
 
-function Login() {
-  const [currentUser, setCurrentUser] = useState();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
+function Login({currentUser, setCurrentUser}) {
+
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  
   const navigate = useNavigate();
 
-  /*useEffect(() => {
-    client.get("api/user")
-        .then(function(res) {
-          setCurrentUser(true);
-        })
-        .catch(function(error) {
-          setCurrentUser(false);
-        });
-  }, []);*/
-  const handleLogin = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        // Login successful
-        console.log('Login successful');
-
-
-
-        // Redirect or perform other actions after successful login
-        // For example, you can redirect to the home page:
-        navigate('/');
-      } else {
-        // Handle login error, display error message, etc.
-        console.error('Login failed');
-      }
-      // Clear input fields
-      setEmail('');
-      setPassword('');
-    } catch (error) {
+  function submitLogin(e) {
+    e.preventDefault();
+    client.post(
+        "/api/login",
+        {
+          email: email,
+          password: password
+        }
+    ).then(function(res) {
+      console.log('Server response:', res);
+      setCurrentUser(true);
+      // console.log('Setting username:', res.data.user.username);
+      // Cookies.set('username', res.data.user.username);
+      // console.log('Username after setting:', Cookies.get('username'));
+      navigate('/', { replace: true });
+    })
+    .catch(function(error) {
       console.error('Error during login:', error);
+    });
+  }
+
+  function submitRegistration(e) {
+    e.preventDefault();
+    client.post(
+        "/api/register",
+        {
+          email: email,
+          username: username,
+          password: password
+        }
+    ).then(function(res) {
+      client.post(
+          "/api/login",
+          {
+            email: email,
+            password: password
+          }
+      ).then(function(res) {
+        console.log('Server response:', res);
+        setCurrentUser(true);
+        // console.log('Setting username:', res.data.user.username);
+        // Cookies.set('username', res.data.user.username);
+        // console.log('Username after setting:', Cookies.get('username'));
+        navigate('/', { replace: true });
+      });
+    });
+  }
+
+  useEffect(() => {
+    document.body.classList.add("login");
+  
+    return () => {
+      document.body.classList.remove("login");
+    };
+  }, []);
+
+  const togglePanel = (action) => {
+    const container = document.getElementById('myContainer');
+    if (container) {
+      if (action === 'add') {
+        container.classList.add('active');
+      } else if (action === 'remove') {
+        container.classList.remove('active');
+      }
     }
   };
 
-  const handleCreateAccount = () => {
-    navigate('/account-creation');
-  };
-
   return (
-    <div className="login-container">
-      <h2>Log Into PitchPro</h2>
-      <form>
-        <label className="label-input">
-          <input
-            type="email"
-            className="input-field"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-          />
-        </label>
-        <label className="label-input">
-          <input
-            type="password"
-            className="input-field"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-          />
-        </label>
-        <button type="button" className="login-button" onClick={handleLogin}>
-          Log In
-        </button>
-        <button type="button" className="create-account-button" onClick={handleCreateAccount}>
-          Create new Account
-        </button>
-      </form>
+    <div className="container" id="myContainer">
+      <div className="close-icon">
+        <Link to="/">
+          <FaTimes color="#76E4E0" size="1.5em"/>
+        </Link>
+      </div>
+      <div className="login-container">
+        <form onSubmit={e => submitLogin(e)}>
+          <h1>Sign In</h1>
+          <div className="input-box">
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
+          </div>
+          <div className="input-box">
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />
+          </div>
+          <button type="submit">LOGIN</button>
+        </form>   
+      </div>
+      <div className="registration-container">
+        <form onSubmit={e => submitRegistration(e)}>
+          <h1>Create Account</h1>
+          <div className="input-box">
+            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" required />
+          </div>
+          <div className="input-box">
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
+          </div>
+          <div className="input-box">
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />  
+          </div>
+          <button type="submit">SIGN UP</button>
+        </form>   
+      </div>
+      <div className="toggle-container">
+        <div className="toggle">
+          <div className="toggle-panel toggle-left">
+            <h1>Welcome Back!</h1>
+            <p>Enter your personal details to use all of site features</p>
+            <button id="signIn" className="hidden" type="button" onClick={() => togglePanel('remove')}>SIGN IN</button>
+          </div>
+          <div className="toggle-panel toggle-right">
+            <h1>Hello Friend!</h1>
+            <p>Register with your personal details to use all of site features</p>
+            <button id="signUp" className="hidden" type="button" onClick={() => togglePanel('add')}>SIGN UP</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-
 export default Login;
