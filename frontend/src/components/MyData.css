@@ -1,5 +1,12 @@
-#map { height: 300px; }
-
+#map {
+    height: 300px;
+    margin: 20px;
+}
+#slider {
+    margin: 15px;
+    padding: 20px;
+    border: 1px solid #4CAF50;
+}
 .leaflet-container {
   width: 80vw;
   height: 80vh;

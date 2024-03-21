@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect, useRef, useContext, createContext } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup } from 'react-leaflet';
 import { useMap } from 'react-leaflet/hooks';
-import { useLeafletContext} from '@react-leaflet/core';
+import ReactSlider from 'react-slider';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
@@ -82,6 +82,22 @@ export default function MyData() {
     );
 }
 
+function Slider(data) {
+    // https://zillow.github.io/react-slider/#reactslider
+    return (
+        <ReactSlider
+            className="horizontal-slider"
+            thumbClassName="timestamp"
+            trackClassName="segment"
+            defaultValue={[0, 50]}
+            ariaLabel={['start', 'stop' ]}
+            renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
+            pearling={false}
+            minDistance={2}
+        />
+    );
+}
+
 function AddGpx(data) {
     const map = useMap();
     if (data.gpxfile == undefined) return;
@@ -130,11 +146,20 @@ function DrawControls() {
 
 function TheMap (data) {
     return (
-        <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
-            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-            <AddGpx gpxfile={data.gpxfile}/>
-            <DrawControls />
-        </MapContainer>
+        <div>
+            <div id="slider" padding="10px">
+                <Slider gpxFile={data.gpxfile}/>
+            </div>
+            <div id="map" padding={"10px"}>
+                <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+                    <AddGpx gpxfile={data.gpxfile}/>
+                    <DrawControls />
+                </MapContainer>
+            </div>
+
+        </div>
+
     );
 }
