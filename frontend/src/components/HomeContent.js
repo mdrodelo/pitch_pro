@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import img from '../images/image1.svg';
-import img2 from '../images/image2.svg';
+import img2 from '../images/image1.png';
 
 const HomeContainer = styled.div`
     color: #fff;

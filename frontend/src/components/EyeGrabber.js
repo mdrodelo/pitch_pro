@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import giFBackground from '../video/BackGround.gif'
-import Video from '../video/BackGround4.mp4'
+import img from '../images/BackGround4.png'
 import Cookies from 'js-cookie';
 
 const Con = styled.div`
@@ -23,7 +22,7 @@ const BackGround = styled.div`
     justify-content: center;
 `;
 
-const BackGroundVideo = styled.video`
+const BackGroundVideo = styled.img`
     position: absolute;
     height: 100%;
     -o-object-fit: cover;
@@ -40,14 +39,16 @@ const Content = styled.div`
 `;
 
 const Header = styled.h1`
-    color: #76e4e0;
-    font-size: 3rem;
+    color: #000;
+    font-size: 1.6rem;
+    margin-top: -280px;
 `;
 
 const SubHeader = styled.h2`
-    color: #76e4e0;
-    font-size: 2rem;
+    color: #000;
+    font-size: 6rem;
     text-align: center;
+    margin-top: 10px;
 `;
 
 const EyeGrabber = ({ currentUser }) => {
@@ -57,7 +58,7 @@ const EyeGrabber = ({ currentUser }) => {
     return (
         <Con>
             <BackGround>
-                <BackGroundVideo autoPlay loop muted src={Video} type='video/mp4' />
+                <BackGroundVideo src={img} alt = 'all'/>
             </BackGround>
             <Content>
             {currentUser ? (
@@ -67,8 +68,8 @@ const EyeGrabber = ({ currentUser }) => {
                 </>
             ) : (
                 <>
-                    <Header>Welcome to PitchPro</Header>
-                    <SubHeader>Sign up so that you can start your journey in elevating your game to the NEXT LEVEL.</SubHeader>
+                    <Header>Elevate Your Game With</Header>
+                    <SubHeader>PitchPro</SubHeader>
                 </>
             )}
             </Content>

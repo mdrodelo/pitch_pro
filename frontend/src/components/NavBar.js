@@ -6,10 +6,10 @@ import axios from "axios";
 import Cookies from 'js-cookie';
 import {useEffect, useState} from "react";
 import { useNavigate } from 'react-router-dom';
+import img from '../images/BackGround4.png';
 
 const Nav = styled.nav`
-    background: #030c12;
-    height: 80px;
+    background: transparent;
     display: flex;
     justify-content: center;
     font-size: 1.5rem;
@@ -29,14 +29,14 @@ const NavbarContainer = styled.div`
 `;
 
 const NavLogo = styled(LinkRouter)`
-    color: #76e4e0;
+    color: #000;
     justify-self: flex-start;
     cursor: pointer;
-    font-size: 1.5rem;
+    font-size: 2.5rem;
     display: flex;
     align-items: center;
     margin-left: 24px;
-    font-weight: bold;
+    font-weight: 700;
     text-decoration: none;
 `;
 
@@ -53,7 +53,7 @@ const NavItem = styled.li`
 `;
 
 const NavLinks = styled(LinkScroll)`
-    color: #76e4e0;
+    color: #000;
     display: flex;
     align-items: center;
     text-decoration: none;
@@ -75,10 +75,10 @@ const NavButton = styled.nav`
 
 const NavButtonLink = styled(LinkRouter)`
     border-radius: 50px;
-    background: #76e4e0;
+    background: #000;
     white-space: nowrap;
     padding: 10px 22px;
-    color: #000;
+    color: #fff;
     font-size: 16px;
     outline: none;
     border: none;
