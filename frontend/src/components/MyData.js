@@ -44,6 +44,7 @@ export default function MyData() {
         } else {
             document.getElementById("data_toggle").innerHTML = "View Data";
             setAddDataToggle(true);
+            drawLayers = false;
         }
     }
 
@@ -91,6 +92,7 @@ function Slider(data) {
             trackClassName="segment"
             defaultValue={[0, 50]}
             ariaLabel={['start', 'stop' ]}
+            max={200}
             renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
             pearling={false}
             minDistance={2}
@@ -100,7 +102,7 @@ function Slider(data) {
 
 function AddGpx(data) {
     const map = useMap();
-    if (data.gpxfile == undefined) return;
+    if (data.gpxfile === undefined) return;
     map.eachLayer(function (layer) {
         if (layer["_gpx"] !== undefined) map.removeLayer(layer);
     });
