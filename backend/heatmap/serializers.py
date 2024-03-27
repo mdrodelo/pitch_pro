@@ -5,8 +5,11 @@ from user_api.models import AppUser
 
 
 class GameDataSerializer(serializers.ModelSerializer):
+    pass
     """class Meta:
         model = GameData
         fields = '__all__'"""
 
 
+class HeatMapSerializer(serializers.ModelSerializer):
+    pass

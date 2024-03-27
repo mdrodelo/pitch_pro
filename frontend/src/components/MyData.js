@@ -147,19 +147,48 @@ function DrawControls() {
 }
 
 function TheMap (data) {
+    const [gameTitle, setGameTitle] = useState('');
+    const [position, setPosition] = useState('');
+    function submitGameData(e) {
+        e.preventDefault();
+        console.log(data.gpxfile);
+        console.log(gameTitle);
+        console.log(position);
+        client.post(
+            "/api/NewGame",
+            {
+                title: gameTitle,
+                position: position,
+                gpx: data.gpxfile
+            }
+        ).then(function(res) {
+            console.log("Successful POST. Reload gamedata table");
+        });
+    }
     return (
         <div>
-            <div id="slider" padding="10px">
-                <Slider gpxFile={data.gpxfile}/>
-            </div>
-            <div id="map" padding={"10px"}>
-                <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
-                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                    <AddGpx gpxfile={data.gpxfile}/>
-                    <DrawControls />
-                </MapContainer>
-            </div>
+            <Form onSubmit={e => submitGameData(e)}>
+                <Form.Group className="mb-3" controlId="formGameTitle">
+                    <Form.Label>Game Title</Form.Label>
+                    <Form.Control placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="formPosition">
+                    <Form.Label>Position</Form.Label>
+                    <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
+                </Form.Group>
+                <Button variant="primary" type="submit">Submit New Game Data</Button>
+                <div id="slider" padding="10px">
+                    <Slider gpxFile={data.gpxfile}/>
+                </div>
+                <div id="map" padding={"10px"}>
+                    <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+                        <AddGpx gpxfile={data.gpxfile}/>
+                        <DrawControls />
+                    </MapContainer>
+                </div>
+            </Form>
 
         </div>
 

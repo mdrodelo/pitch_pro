@@ -21,6 +21,7 @@ class Heatmap(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def get(self, request):
+        print(request)
         parser = Sbopen()
         df_false9 = parser.event(69249)[0]
         df_false9 = df_false9.loc[df_false9.player_id == 5503, ['x', 'y']]
@@ -43,6 +44,14 @@ class GameData(APIView):
     authentication_classes = (SessionAuthentication,)
 
     def get(self, request):
+        print(request)
         # GameData.get(self, request)
         # serializer = GameDataSerializer(request.user)
         return Response({'data': GameData.get(self, request={AppUser.user_id})}, status=status.HTTP_200_OK)
+
+class NewGameData(APIView):
+    authentication_classes = (SessionAuthentication,)
+
+    def post(self, request):
+        print(request)
+        pass
