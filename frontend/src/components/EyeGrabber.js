@@ -25,8 +25,6 @@ const BackGround = styled.div`
 const BackGroundVideo = styled.img`
     position: absolute;
     height: 100%;
-    -o-object-fit: cover;
-    object-fit: cover;
     width: 100%;
 `;
 
@@ -41,12 +39,14 @@ const Content = styled.div`
 const Header = styled.h1`
     color: #000;
     font-size: 1.6rem;
+    font-weight: 800;
     margin-top: -280px;
 `;
 
 const SubHeader = styled.h2`
     color: #000;
     font-size: 6rem;
+    font-weight: 800;
     text-align: center;
     margin-top: 10px;
 `;

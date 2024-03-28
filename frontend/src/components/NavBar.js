@@ -6,18 +6,60 @@ import axios from "axios";
 import Cookies from 'js-cookie';
 import {useEffect, useState} from "react";
 import { useNavigate } from 'react-router-dom';
-import img from '../images/BackGround4.png';
+import img from '../images/BackGround4.png'
 
 const Nav = styled.nav`
     background: transparent;
     display: flex;
     justify-content: center;
-    font-size: 1.5rem;
-    position: sticky;
+    font-size: 1.0rem;
+    font-weight: 800;
+    /* position: sticky; */
     top: 0;
-    z-index: 10;
+    z-index: 1;
+    height: 100vh;
+    width: 100%;
+`;
+const BackGround = styled.div`
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-color: black;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 `;
 
+const BackGroundVideo = styled.img`
+    position: absolute;
+    height: 100%;
+    width: 100%;
+`;
+
+const Content = styled.div`
+    position: absolute;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+`;
+
+const Header = styled.h1`
+    color: #000;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 280px;
+`;
+
+const SubHeader = styled.h2`
+    color: #000;
+    font-size: 6rem;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 10px;
+`;
 const NavbarContainer = styled.div`
     display: flex;
     justify-content: space-between;
@@ -32,11 +74,12 @@ const NavLogo = styled(LinkRouter)`
     color: #000;
     justify-self: flex-start;
     cursor: pointer;
-    font-size: 2.5rem;
+    font-size: 3rem;
     display: flex;
     align-items: center;
     margin-left: 24px;
-    font-weight: 700;
+    font-weight: 800;
+    /* font-style: italic; */
     text-decoration: none;
 `;
 
@@ -119,6 +162,9 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
     return (
         <>
             <Nav>
+                <BackGround>
+                    <BackGroundVideo src={img} alt = 'all'/>
+                </BackGround>
                <NavbarContainer>
                     <NavLogo to= '/'>PitchPro</NavLogo>
                     <NavMenu>
@@ -152,6 +198,19 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
                         )}
                     </NavMenu>
                </NavbarContainer>
+               <Content>
+                {currentUser ? (
+                    <>
+                        <Header>Welcome back, Username!</Header>
+                        <SubHeader>Ready to take your game to the NEXT LEVEL?</SubHeader>
+                    </>
+                ) : (
+                    <>
+                        <Header>Elevate Your Game With</Header>
+                        <SubHeader>PitchPro</SubHeader>
+                    </>
+                )}
+                </Content>
             </Nav>
         </>
     );

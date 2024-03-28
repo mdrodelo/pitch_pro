@@ -17,7 +17,7 @@ const Home = ({ currentUser, setCurrentUser }) => {
       return (
         <div>
           <NavBar />
-          <EyeGrabber />
+          {/* <EyeGrabber /> */}
           <HomeContent />
         </div>
       );
