@@ -1,28 +1,19 @@
 import React from 'react';
-import { useState, useEffect, useRef, useContext, createContext } from 'react';
+import { useState, useEffect, useMemo, useContext, createContext } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup } from 'react-leaflet';
 import { useMap } from 'react-leaflet/hooks';
 import ReactSlider from 'react-slider';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
-import { EditControl } from "react-leaflet-draw"
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
-import axios from "axios";
+import client from "./api";
 
 let drawLayers = false;
-const gpxContext = React.createContext(undefined);
-const client = axios.create({
-  baseURL: "http://127.0.0.1:8000"
-});
 
-const data = [
-    {title: "game 1", "date": "12/12/2023"},
-    {title: "game 2", "date": "12/20/2023"},
-    {title: "game 3", "date": "1/12/2024"},
-]
+let data = []
 
 export default function MyData() {
     const [addDataToggle, setAddDataToggle] = useState(false);
@@ -48,6 +39,15 @@ export default function MyData() {
         }
     }
 
+    client.post("/api/gamedata",
+        {
+            user:1 // TODO hardcoded. Need to fix
+        })
+        .then(function(res) {
+            console.log(res);
+            data = res.data;
+        });
+
     return (
         <div>
             <div>MyData Screen Content</div>
@@ -70,8 +70,8 @@ export default function MyData() {
                         {data.map((val, key) => {
                             return (
                                 <tr key={key}>
-                                    <td>{val.title}</td>
-                                    <td>{val.date}</td>
+                                    <td>{val.game_title}</td>
+                                    <td>{val.game_date}</td>
                                     <td><button>View</button></td>
                                 </tr>
                             )
@@ -151,9 +151,7 @@ function TheMap (data) {
     const [position, setPosition] = useState('');
     function submitGameData(e) {
         e.preventDefault();
-        console.log(data.gpxfile);
         console.log(gameTitle);
-        console.log(position);
         client.post(
             "/api/NewGame",
             {

@@ -17,7 +17,9 @@ import Instructions from './components/Instructions';
 import MyData from './components/MyData';
 import Login from './components/Login';
 import AccountCreation from "./components/AccountCreation";
+import client from "./components/api";
 
+/* OG
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true;
@@ -25,6 +27,8 @@ axios.defaults.withCredentials = true;
 const client = axios.create({
   baseURL: "http://127.0.0.1:8000"
 });
+
+ */
 
 function App() {
   const [currentUser, setCurrentUser] = useState();
@@ -35,12 +39,22 @@ function App() {
 
   useEffect(() => {
     client.get("/api/user")
+        .then(function(res) {
+          setCurrentUser(true);
+        })
+        .catch(function(error) {
+          setCurrentUser(false);
+        });
+    /*
+    client.get("/api/user")
     .then(function(res) {
       setCurrentUser(true);
     })
     .catch(function(error) {
       setCurrentUser(false);
     });
+
+     */
   }, []);
 
   function update_form_btn() {
@@ -61,6 +75,24 @@ function App() {
           email: email,
           username: username,
           password: password
+        })
+        .then(function(res) {
+          client.post("/api/login",
+              {
+                email: email,
+                password: password
+              })
+              .then(function(res) {
+                setCurrentUser(true);
+              });
+        });
+    /* OG
+    client.post(
+        "/api/register",
+        {
+          email: email,
+          username: username,
+          password: password
         }
     ).then(function(res) {
       client.post(
@@ -73,6 +105,8 @@ function App() {
         setCurrentUser(true);
       });
     });
+
+     */
   }
 
   function loginCallback(data) {
@@ -89,7 +123,22 @@ function App() {
         }
     ).then(function(res) {
       setCurrentUser(true);
+      console.log(res);
+      localStorage.setItem("csrftoken", res.data.token);
+      localStorage.setItem("sessionid", res.data.sessionId);
     });
+    /*
+    client.post(
+        "/api/login",
+        {
+          email: email,
+          password: password
+        }
+    ).then(function(res) {
+      setCurrentUser(true);
+    });
+
+     */
   }
 
   function submitLogout(e) {
@@ -100,6 +149,14 @@ function App() {
     ).then(function(res) {
       setCurrentUser(false);
     });
+    /* OG
+    client.post(
+        "/api/logout",
+        {withCredentials: true}
+    ).then(function(res) {
+      setCurrentUser(false);
+    });
+     */
   }
 
   if (currentUser) {
