@@ -6,6 +6,7 @@ import ReactSlider from 'react-slider';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
+import 'leaflet-draw';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
