@@ -1,26 +1,29 @@
 from django.shortcuts import render
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework import permissions, status
-from .serializers import  GameDataSerializer
+from .serializers import GameDataSerializer, AllGameDataSerializer
 from rest_framework.response import Response
 import base64
+import heatmap.data as data
+import pandas as pd
 
-#from ..user_api.models import AppUser
-#from models import GameData
+from user_api.models import AppUser
+from heatmap.models import GameData, PlayerMovement
 
 # Imports that should be moved to backend
 from mplsoccer import Pitch, Sbopen
 import io
 # end of these imports
-# Create your views here.
 
 
 class Heatmap(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def get(self, request):
+        print(request)
         parser = Sbopen()
         df_false9 = parser.event(69249)[0]
         df_false9 = df_false9.loc[df_false9.player_id == 5503, ['x', 'y']]
@@ -38,11 +41,46 @@ class Heatmap(APIView):
         return Response({'heatmap': data}, status=status.HTTP_200_OK)
 
 
-class GameData(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+class AllGameData(APIView):
+    #permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (SessionAuthentication,)
 
-    def get(self, request):
-        # GameData.get(self, request)
-        # serializer = GameDataSerializer(request.user)
-        return Response({'data': GameData.get(self, request={AppUser.user_id})}, status=status.HTTP_200_OK)
+    def post(self, request):
+        print(request.data['user'])
+        data = GameData.objects.all().filter(user_id=AppUser.objects.get(user_id=1)) # TODO hardcoded. Need to fix
+        serializer = AllGameDataSerializer(data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class NewGameData(APIView):
+    authentication_classes = (SessionAuthentication,)
+    #permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        gpx_data = data.parse_gpx(request.data['gpx'])
+        title = request.data['title']
+        position = request.data['position'] # TODO add position to Gamedata table
+        date = gpx_data.at[0, 'SessionDate']
+        field_param = "((-81.3626948 28.5952015, -81.3632393 28.595211, " \
+                      "-81.3632407 28.5948954, -81.3626962 28.5948942, -81.3626948 28.5952015))" # TODO get field parameters
+        gd = GameData.objects.create(
+            game_title=title,
+            field_parameters=field_param,
+            game_date=date,
+            user_id=AppUser.objects.get(user_id=1) # TODO hardcoded. Need to fix
+        )
+        player_movements = [
+            PlayerMovement(
+                timestamp=row['Timestamp'],
+                latitude=row['Latitude'],
+                longitude=row['Longitude'],
+                heart_rate=row['Heart Rate'] if not pd.isna(row['Heart Rate']) else None,
+                switch_sides=False,
+                user_id=AppUser.objects.get(user_id=1),
+                game_id=gd,
+            )
+            for index, row in gpx_data.iterrows()
+        ]
+        with transaction.atomic():  # using a transaction to ensure data integrity
+            PlayerMovement.objects.bulk_create(player_movements)
+        return Response(status=status.HTTP_201_CREATED)

@@ -1,11 +1,11 @@
 import React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useContext, createContext } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup } from 'react-leaflet';
 import { useMap } from 'react-leaflet/hooks';
+import ReactSlider from 'react-slider';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
-import { EditControl } from "react-leaflet-draw"
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
@@ -154,9 +154,8 @@ function MyData() {
     const [showImage, setShowImage] = useState(false);
 
     function handleFileChange(e) {
-        //const mapRef = useRef(null);
         let fileReader = new FileReader();
-
+        setFile(e.target.result);
         fileReader.onload = function(e)  {
             setFile(e.target.result);
             const map = L.map('map').setView([0,0], 2);
@@ -260,4 +259,112 @@ function MyData() {
     );
 }
 
-export default MyData;
+function Slider(data) {
+    // https://zillow.github.io/react-slider/#reactslider
+    return (
+        <ReactSlider
+            className="horizontal-slider"
+            thumbClassName="timestamp"
+            trackClassName="segment"
+            defaultValue={[0, 50]}
+            ariaLabel={['start', 'stop' ]}
+            max={200}
+            renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
+            pearling={false}
+            minDistance={2}
+        />
+    );
+}
+
+function AddGpx(data) {
+    const map = useMap();
+    if (data.gpxfile === undefined) return;
+    map.eachLayer(function (layer) {
+        if (layer["_gpx"] !== undefined) map.removeLayer(layer);
+    });
+    new L.GPX(data.gpxfile, {
+        async: true,
+        drawControl: true,
+        marker_options: {
+            startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
+            endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
+            shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
+        }
+    }).on('loaded', function (e) {
+        map.fitBounds(e.target.getBounds());
+    }).addTo(map);
+}
+
+function DrawControls() {
+    const map = useMap();
+    if (drawLayers) return;
+    else drawLayers = true;
+
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    var drawControl = new L.Control.Draw({
+        draw: {
+            polyline: false,
+            rectangle: false,
+            circle: false,
+            marker: false,
+            circlemarker: false
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
+    });
+    map.addControl(drawControl);
+
+    map.on(L.Draw.Event.CREATED, function(e) {
+        let layer = e.layer;
+        drawnItems.addLayer(layer);
+    });
+}
+
+function TheMap (data) {
+    const [gameTitle, setGameTitle] = useState('');
+    const [position, setPosition] = useState('');
+    function submitGameData(e) {
+        e.preventDefault();
+        console.log(gameTitle);
+        client.post(
+            "/api/NewGame",
+            {
+                title: gameTitle,
+                position: position,
+                gpx: data.gpxfile
+            }
+        ).then(function(res) {
+            console.log("Successful POST. Reload gamedata table");
+        });
+    }
+    return (
+        <div>
+            <Form onSubmit={e => submitGameData(e)}>
+                <Form.Group className="mb-3" controlId="formGameTitle">
+                    <Form.Label>Game Title</Form.Label>
+                    <Form.Control placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="formPosition">
+                    <Form.Label>Position</Form.Label>
+                    <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
+                </Form.Group>
+                <Button variant="primary" type="submit">Submit New Game Data</Button>
+                <div id="slider" padding="10px">
+                    <Slider gpxFile={data.gpxfile}/>
+                </div>
+                <div id="map" padding={"10px"}>
+                    <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+                        <AddGpx gpxfile={data.gpxfile}/>
+                        <DrawControls />
+                    </MapContainer>
+                </div>
+            </Form>
+
+        </div>
+
+    );
+}
