@@ -13,17 +13,7 @@ import Home from './components/Home';
 import MyData from './components/MyData';
 import Login from './components/Login';
 import { useNavigate } from 'react-router-dom';
-
-/* OG
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-axios.defaults.withCredentials = true;
-
-const client = axios.create({
-  baseURL: "http://127.0.0.1:8000"
-});
-
- */
+import client from "./components/api";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(false);

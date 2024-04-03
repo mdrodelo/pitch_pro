@@ -53,8 +53,6 @@ const SubHeader = styled.h2`
 
 const EyeGrabber = ({ currentUser }) => {
 
-    //const username = Cookies.get('username');
-
     return (
         <Con>
             <BackGround>

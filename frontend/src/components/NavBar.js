@@ -7,6 +7,7 @@ import Cookies from 'js-cookie';
 import {useEffect, useState} from "react";
 import { useNavigate } from 'react-router-dom';
 import img from '../images/BackGround4.png'
+import client from "./api";
 
 const Nav = styled.nav`
     background: transparent;
@@ -14,7 +15,6 @@ const Nav = styled.nav`
     justify-content: center;
     font-size: 1.0rem;
     font-weight: 800;
-    /* position: sticky; */
     top: 0;
     z-index: 1;
     height: 100vh;
@@ -135,13 +135,6 @@ const NavButtonLink = styled(LinkRouter)`
         color: #000;
     }
 `;
-
-
-
-const client = axios.create({
-    baseURL: "http://127.0.0.1:8000"
-});
-
 
 const NavBar = ({ currentUser, setCurrentUser }) => {
     const navigate = useNavigate();

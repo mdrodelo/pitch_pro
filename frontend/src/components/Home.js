@@ -9,7 +9,7 @@ const Home = ({ currentUser, setCurrentUser }) => {
       return (
         <div>
           <NavBar currentUser={currentUser} setCurrentUser={setCurrentUser} />
-          <EyeGrabber currentUser={currentUser} />
+          {/* <EyeGrabber currentUser={currentUser} /> */}
           <MyData />
         </div>
       );

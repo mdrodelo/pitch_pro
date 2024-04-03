@@ -9,10 +9,9 @@ import 'leaflet-gpx';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
-import axios from "axios";
 import styled from 'styled-components';
 import img from '../images/image3.svg';
-
+import client from "./api";
 /*
 <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
     <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -138,19 +137,12 @@ const StyledButton = styled.button`
         color: #000;
     }
 `;
+let drawLayers = false;
 
-const client = axios.create({
-  baseURL: "http://127.0.0.1:8000"
-});
+let data = []
 
-const data = [
-    {title: "game 1", "date": "12/12/2023"},
-    {title: "game 2", "date": "12/20/2023"},
-    {title: "game 3", "date": "1/12/2024"},
-]
-
-function MyData() {
-    const [file, setFile] = useState(null);
+export default function MyData() {
+    const [file, setFile] = useState(undefined);
     const [showImage, setShowImage] = useState(false);
 
     function handleFileChange(e) {
@@ -158,52 +150,18 @@ function MyData() {
         setFile(e.target.result);
         fileReader.onload = function(e)  {
             setFile(e.target.result);
-            const map = L.map('map').setView([0,0], 2);
-
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            new L.GPX(e.target.result, {
-                async: true,
-                //ref: {mapRef},
-                drawControl: true,
-                marker_options: {
-                    startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
-                    endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
-                    shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
-                }
-            }).on('loaded', function(e) {
-                map.fitBounds(e.target.getBounds());
-            }).addTo(map);
-            console.log(file);
-            // draw layers
-            var drawnItems = new L.FeatureGroup();
-            map.addLayer(drawnItems);
-            var drawControl = new L.Control.Draw({
-                draw: {
-                    polyline: false,
-                    rectangle: false,
-                    circle: false,
-                    marker: false,
-                    circlemarker: false
-                },
-                edit: {
-                    featureGroup: drawnItems
-                }
-            });
-            map.addControl(drawControl);
-
-            map.on(L.Draw.Event.CREATED, function(e) {
-                let layer = e.layer;
-
-                drawnItems.addLayer(layer);
-            })
         }
         fileReader.readAsText(e.target.files[0], "UTF-8");
     }
 
+    client.post("/api/gamedata",
+    {
+        user:1 // TODO hardcoded. Need to fix
+    })
+    .then(function(res) {
+        console.log(res);
+        data = res.data;
+    });
 
     return (
         <div>
@@ -245,6 +203,7 @@ function MyData() {
                         <TextContent>
                             <AddDataDiv>Add data</AddDataDiv>
                             <input type="file" accept='.gpx' onChange={handleFileChange}/>
+                            <TheMap gpxfile={file}/>
                         </TextContent>
                         </Column1>
                         <Column2>

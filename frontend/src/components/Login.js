@@ -5,14 +5,7 @@ import './Login.css'; // Import your CSS file
 import { FaTimes } from 'react-icons/fa';
 import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
-
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-axios.defaults.withCredentials = true;
-
-const client = axios.create({
-  baseURL: "http://127.0.0.1:8000"
-});
+import client from "./api";
 
 function Login({currentUser, setCurrentUser}) {
 
@@ -33,9 +26,6 @@ function Login({currentUser, setCurrentUser}) {
     ).then(function(res) {
       console.log('Server response:', res);
       setCurrentUser(true);
-      // console.log('Setting username:', res.data.user.username);
-      // Cookies.set('username', res.data.user.username);
-      // console.log('Username after setting:', Cookies.get('username'));
       navigate('/', { replace: true });
     })
     .catch(function(error) {
@@ -62,9 +52,6 @@ function Login({currentUser, setCurrentUser}) {
       ).then(function(res) {
         console.log('Server response:', res);
         setCurrentUser(true);
-        // console.log('Setting username:', res.data.user.username);
-        // Cookies.set('username', res.data.user.username);
-        // console.log('Username after setting:', Cookies.get('username'));
         navigate('/', { replace: true });
       });
     });
