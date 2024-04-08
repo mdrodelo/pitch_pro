@@ -61,11 +61,17 @@ class NewGameData(APIView):
         title = request.data['title']
         position = request.data['position'] # TODO add position to Gamedata table
         date = gpx_data.at[0, 'SessionDate']
-        field_param = "((-81.3626948 28.5952015, -81.3632393 28.595211, " \
-                      "-81.3632407 28.5948954, -81.3626962 28.5948942, -81.3626948 28.5952015))" # TODO get field parameters
+        field = request.data['field'][0] # TODO get field parameters
+        field_params = ""
+        for coordinate in field:
+            if len(field_params) > 0:
+                field_params += " "
+            field_params += str(coordinate['lat']) + " "
+            field_params += str(coordinate['lng'])
+
         gd = GameData.objects.create(
             game_title=title,
-            field_parameters=field_param,
+            field_parameters=field_params,
             game_date=date,
             user_id=AppUser.objects.get(user_id=1) # TODO hardcoded. Need to fix
         )

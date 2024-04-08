@@ -120,7 +120,7 @@ function AddGpx(data) {
     }).addTo(map);
 }
 
-function DrawControls() {
+function DrawControls({sendLatLngs}) {
     const map = useMap();
     if (drawLayers) return;
     else drawLayers = true;
@@ -144,21 +144,29 @@ function DrawControls() {
     map.on(L.Draw.Event.CREATED, function(e) {
         let layer = e.layer;
         drawnItems.addLayer(layer);
+        sendLatLngs(layer.getLatLngs());
     });
 }
 
 function TheMap (data) {
     const [gameTitle, setGameTitle] = useState('');
     const [position, setPosition] = useState('');
-    function submitGameData(e) {
+    const [latLngs, setLatLngs] = useState(null);
+
+    function handleLatLngs(data) {
+        setLatLngs(data);
+    }
+
+    function SubmitGameData(e) {
         e.preventDefault();
-        console.log(gameTitle);
+
         client.post(
             "/api/NewGame",
             {
                 title: gameTitle,
                 position: position,
-                gpx: data.gpxfile
+                gpx: data.gpxfile,
+                field: latLngs
             }
         ).then(function(res) {
             console.log("Successful POST. Reload gamedata table");
@@ -166,7 +174,7 @@ function TheMap (data) {
     }
     return (
         <div>
-            <Form onSubmit={e => submitGameData(e)}>
+            <Form onSubmit={e => SubmitGameData(e)}>
                 <Form.Group className="mb-3" controlId="formGameTitle">
                     <Form.Label>Game Title</Form.Label>
                     <Form.Control placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
@@ -184,7 +192,7 @@ function TheMap (data) {
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
                         <AddGpx gpxfile={data.gpxfile}/>
-                        <DrawControls />
+                        <DrawControls sendLatLngs={handleLatLngs}/>
                     </MapContainer>
                 </div>
             </Form>
