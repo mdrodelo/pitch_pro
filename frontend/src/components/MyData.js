@@ -140,10 +140,17 @@ function DrawControls({sendLatLngs}) {
         }
     });
     map.addControl(drawControl);
+    map.on(L.Draw.Event.DRAWSTART, function () {
+        drawnItems.eachLayer(function (layer) {
+            map.removeLayer(layer);
+        });
+        drawnItems = new L.FeatureGroup();
+    });
 
     map.on(L.Draw.Event.CREATED, function(e) {
         let layer = e.layer;
         drawnItems.addLayer(layer);
+        map.addLayer(layer);
         sendLatLngs(layer.getLatLngs());
     });
 }
