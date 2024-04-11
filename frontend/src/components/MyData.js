@@ -16,9 +16,10 @@ let drawLayers = false;
 
 let data = []
 
-export default function MyData() {
+export default function MyData(props) {
     const [addDataToggle, setAddDataToggle] = useState(false);
     const [file, setFile] = useState(undefined);
+    const [data, setData] = useState([]);
 
     function handleFileChange(e) {
         let fileReader = new FileReader();
@@ -39,15 +40,16 @@ export default function MyData() {
             drawLayers = false;
         }
     }
-
-    client.post("/api/gamedata",
+    useEffect(() =>  {
+        client.post("/api/gamedata",
         {
-            user:1 // TODO hardcoded. Need to fix
+            email: props.thisEmail
         })
         .then(function(res) {
-            console.log(res);
-            data = res.data;
+            setData(res.data);
+            //data = res.data;
         });
+    }, []);
 
     return (
         <div>
@@ -58,7 +60,7 @@ export default function MyData() {
                     <div>
                         <div>Add data</div>
                         <input type="file" accept='.gpx' onChange={handleFileChange}/>
-                        <TheMap gpxfile={file}/>
+                        <TheMap gpxfile={file} thisEmail={props.thisEmail}/>
 
                     </div>
                 ) : (
@@ -86,28 +88,29 @@ export default function MyData() {
 
 function Slider(data) {
     // https://zillow.github.io/react-slider/#reactslider
+    // https://github.com/gpxstudio/gpxstudio.github.io/blob/master/js/slider.js
     return (
         <ReactSlider
-            className="horizontal-slider"
-            thumbClassName="timestamp"
-            trackClassName="segment"
+            className="customSlider"
+            thumbClassName="customSlider-Thumb"
+            trackClassName="customSlider-Track"
             defaultValue={[0, 50]}
             ariaLabel={['start', 'stop' ]}
             max={200}
             renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
             pearling={false}
-            minDistance={2}
+            minDistance={10}
         />
     );
 }
 
-function AddGpx(data) {
+function AddGpx(props) {
     const map = useMap();
-    if (data.gpxfile === undefined) return;
+    if (props.gpxfile === undefined) return;
     map.eachLayer(function (layer) {
         if (layer["_gpx"] !== undefined) map.removeLayer(layer);
     });
-    new L.GPX(data.gpxfile, {
+    new L.GPX(props.gpxfile, {
         async: true,
         drawControl: true,
         marker_options: {
@@ -117,6 +120,7 @@ function AddGpx(data) {
         }
     }).on('loaded', function (e) {
         map.fitBounds(e.target.getBounds());
+        console.log(e);
     }).addTo(map);
 }
 
@@ -155,7 +159,7 @@ function DrawControls({sendLatLngs}) {
     });
 }
 
-function TheMap (data) {
+function TheMap (props) {
     const [gameTitle, setGameTitle] = useState('');
     const [position, setPosition] = useState('');
     const [latLngs, setLatLngs] = useState(null);
@@ -170,9 +174,10 @@ function TheMap (data) {
         client.post(
             "/api/NewGame",
             {
+                email: props.thisEmail,
                 title: gameTitle,
                 position: position,
-                gpx: data.gpxfile,
+                gpx: props.gpxfile,
                 field: latLngs
             }
         ).then(function(res) {
@@ -191,14 +196,19 @@ function TheMap (data) {
                     <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group>
                 <Button variant="primary" type="submit">Submit New Game Data</Button>
+                <div id="slide-container">
+
+                    <input type="range" min="0" max="10000000" value="0" className="slider" id="start-point"/>
+                    <input type="range" min="0" max="10000000" value="10000000" className="slider visible" id="end-point"/>
+                </div>
                 <div id="slider" padding="10px">
-                    <Slider gpxFile={data.gpxfile}/>
+                    <Slider gpxFile={props.gpxfile}/>
                 </div>
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                        <AddGpx gpxfile={data.gpxfile}/>
+                        <AddGpx gpxfile={props.gpxfile}/>
                         <DrawControls sendLatLngs={handleLatLngs}/>
                     </MapContainer>
                 </div>
