@@ -84,6 +84,8 @@ function App() {
               })
               .then(function(res) {
                 setCurrentUser(true);
+                setEmail(res.data['email']);
+                console.log(res);
               });
         });
     /* OG
@@ -123,7 +125,7 @@ function App() {
         }
     ).then(function(res) {
       setCurrentUser(true);
-      console.log(res);
+      setEmail(res.data['email']);
       localStorage.setItem("csrftoken", res.data.token);
       localStorage.setItem("sessionid", res.data.sessionId);
     });
