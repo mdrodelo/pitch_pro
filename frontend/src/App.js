@@ -178,7 +178,7 @@ function App() {
               </nav>
             </header>
             <Routes>
-              <Route path="/mydata" element={<MyData />} />
+              <Route path="/mydata" element={<MyData thisEmail={email}/>} />
               <Route path="/" exact element={<Home />} />
               </Routes>
           </div>
