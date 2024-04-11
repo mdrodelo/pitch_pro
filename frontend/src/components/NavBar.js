@@ -4,10 +4,11 @@ import { Link as LinkRouter } from 'react-router-dom';
 import { Link as LinkScroll } from 'react-scroll';
 import axios from "axios";
 import Cookies from 'js-cookie';
-import {useEffect, useState} from "react";
+import {useEffect, useState, useContext} from "react";
 import { useNavigate } from 'react-router-dom';
 import img from '../images/BackGround4.png'
 import client from "./api";
+import { EmailContext } from '../App';
 
 const Nav = styled.nav`
     background: transparent;
@@ -137,6 +138,7 @@ const NavButtonLink = styled(LinkRouter)`
 `;
 
 const NavBar = ({ currentUser, setCurrentUser }) => {
+    const { email, setEmail } = useContext(EmailContext);
     const navigate = useNavigate();
 
     function submitLogout(e) {
@@ -147,6 +149,7 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
         ).then(function(res) {
         console.log('Server response:', res);
         setCurrentUser(false);
+        setEmail('');
         // Cookies.remove('username');
         navigate('/', { replace: true });
         });

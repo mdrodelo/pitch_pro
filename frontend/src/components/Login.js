@@ -1,4 +1,4 @@
-import React, { useEffect, useState }from 'react';
+import React, { useEffect, useState, useContext }from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css'; // Import your CSS file
@@ -6,10 +6,10 @@ import { FaTimes } from 'react-icons/fa';
 import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 import client from "./api";
+import { EmailContext } from '../App';
 
 function Login({currentUser, setCurrentUser}) {
-
-  const [email, setEmail] = useState('');
+  const { email, setEmail } = useContext(EmailContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
@@ -26,6 +26,7 @@ function Login({currentUser, setCurrentUser}) {
     ).then(function(res) {
       console.log('Server response:', res);
       setCurrentUser(true);
+      setEmail(res.data['email']);
       navigate('/', { replace: true });
     })
     .catch(function(error) {
@@ -52,6 +53,7 @@ function Login({currentUser, setCurrentUser}) {
       ).then(function(res) {
         console.log('Server response:', res);
         setCurrentUser(true);
+        setEmail(res.data['email']);
         navigate('/', { replace: true });
       });
     });
@@ -87,7 +89,7 @@ function Login({currentUser, setCurrentUser}) {
         <form onSubmit={e => submitLogin(e)}>
           <h1>Sign In</h1>
           <div className="input-box">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
+            <input type="email" onChange={e => setEmail(e.target.value)} placeholder="Email" required />
           </div>
           <div className="input-box">
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />

@@ -46,8 +46,8 @@ class AllGameData(APIView):
     authentication_classes = (SessionAuthentication,)
 
     def post(self, request):
-        print(request.data['user'])
-        data = GameData.objects.all().filter(user_id=AppUser.objects.get(user_id=1)) # TODO hardcoded. Need to fix
+        email = request.data['email']
+        data = GameData.objects.all().filter(user_id=AppUser.objects.get(email=email)) # TODO hardcoded. Need to fix
         serializer = AllGameDataSerializer(data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -59,15 +59,22 @@ class NewGameData(APIView):
     def post(self, request):
         gpx_data = data.parse_gpx(request.data['gpx'])
         title = request.data['title']
+        email = request.data['email']
         position = request.data['position'] # TODO add position to Gamedata table
         date = gpx_data.at[0, 'SessionDate']
-        field_param = "((-81.3626948 28.5952015, -81.3632393 28.595211, " \
-                      "-81.3632407 28.5948954, -81.3626962 28.5948942, -81.3626948 28.5952015))" # TODO get field parameters
+        field = request.data['field'][0] # TODO get field parameters
+        field_params = ""
+        for coordinate in field:
+            if len(field_params) > 0:
+                field_params += " "
+            field_params += str(coordinate['lat']) + " "
+            field_params += str(coordinate['lng'])
+        #return Response(status=status.HTTP_200_OK)
         gd = GameData.objects.create(
             game_title=title,
-            field_parameters=field_param,
+            field_parameters=field_params,
             game_date=date,
-            user_id=AppUser.objects.get(user_id=1) # TODO hardcoded. Need to fix
+            user_id=AppUser.objects.get(email=email) # TODO hardcoded. Need to fix
         )
         player_movements = [
             PlayerMovement(
@@ -76,7 +83,7 @@ class NewGameData(APIView):
                 longitude=row['Longitude'],
                 heart_rate=row['Heart Rate'] if not pd.isna(row['Heart Rate']) else None,
                 switch_sides=False,
-                user_id=AppUser.objects.get(user_id=1),
+                user_id=AppUser.objects.get(email=email),
                 game_id=gd,
             )
             for index, row in gpx_data.iterrows()
