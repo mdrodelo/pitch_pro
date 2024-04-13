@@ -176,16 +176,13 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
                         ) : (
                             <>
                                 <NavItem>
-                                    <NavLinks to='home'>Home</NavLinks>
+                                    <NavLinks to='/'>Home</NavLinks>
                                 </NavItem>
                                 <NavItem>
-                                    <NavLinks to='About'>About</NavLinks>
+                                    <NavLinks to='about-section' smooth={true} duration={500} spy={true} exact='true'>About</NavLinks>
                                 </NavItem>
                                 <NavItem>
-                                    <NavLinks to='Instructions'>Instructions</NavLinks>
-                                </NavItem>
-                                <NavItem>
-                                    <NavLinks to='login'>Get Started</NavLinks>
+                                    <NavLinks to='instructions-section' smooth={true} duration={500} spy={true} exact='true'>Instructions</NavLinks>
                                 </NavItem>
                                 <NavButton>
                                     <NavButtonLink to='login'>Login</NavButtonLink>
