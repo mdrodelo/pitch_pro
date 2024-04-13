@@ -14,7 +14,6 @@ import client from "./api";
 
 let drawLayers = false;
 
-let data = []
 
 export default function MyData(props) {
     const [addDataToggle, setAddDataToggle] = useState(false);
@@ -28,6 +27,16 @@ export default function MyData(props) {
             setFile(e.target.result);
         }
         fileReader.readAsText(e.target.files[0], "UTF-8");
+    }
+    function RefreshTable(e) {
+        e.preventDefault();
+        client.post("/api/gamedata",
+        {
+            email: props.thisEmail
+        }).then(function(res) {
+            setData(res.data);
+            //data = res.data;
+        });
     }
 
     function update_mydata_btn() {
@@ -64,22 +73,25 @@ export default function MyData(props) {
 
                     </div>
                 ) : (
-                    <table>
-                        <tr>
-                            <th>Title</th>
-                            <th>Date</th>
-                            <th></th>
-                        </tr>
-                        {data.map((val, key) => {
-                            return (
-                                <tr key={key}>
-                                    <td>{val.game_title}</td>
-                                    <td>{val.game_date}</td>
-                                    <td><button>View</button></td>
-                                </tr>
-                            )
-                        })}
-                    </table>
+                    <jsx>
+                        <button id="refresh-table" onClick={RefreshTable}>Refresh</button>
+                        <table>
+                            <tr>
+                                <th>Title</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                            {data.map((val, key) => {
+                                return (
+                                    <tr key={key}>
+                                        <td>{val.game_title}</td>
+                                        <td>{val.game_date}</td>
+                                        <td><button>View</button></td>
+                                    </tr>
+                                )
+                            })}
+                        </table>
+                    </jsx>
                 )
             }
         </div>
