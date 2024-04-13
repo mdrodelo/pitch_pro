@@ -5,7 +5,7 @@
 // https://www.bairesdev.com/blog/react-spa-single-page-application/ good overview of SPA vs MPA
 import React from 'react';
 import axios from "axios";
-import {useEffect, useState} from "react";
+import {useEffect, useState, createContext, useContext } from "react";
 import './App.css';
 import { BrowserRouter, Route, Link, Routes } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
@@ -30,8 +30,12 @@ const client = axios.create({
 
  */
 
+// Context has not been implemented. Leaving it here for reference
+const CurrentUserContext = createContext(null);
+
 function App() {
   const [currentUser, setCurrentUser] = useState();
+  const [userData, setUserData] = useState(null);
   const [registrationToggle, setRegistrationToggle] = useState(false);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -41,9 +45,13 @@ function App() {
     client.get("/api/user")
         .then(function(res) {
           setCurrentUser(true);
+          console.log(res);
+          //setEmail
+          //setUserData({name: res.data})
         })
         .catch(function(error) {
           setCurrentUser(false);
+          console.log("No user signed in");
         });
     /*
     client.get("/api/user")
@@ -113,7 +121,7 @@ function App() {
 
   function loginCallback(data) {
     console.log(data);
-    //submitLogin(data);
+    submitLogin(data);
   }
   function submitLogin(e) {
     e.preventDefault();
@@ -150,6 +158,7 @@ function App() {
         {withCredentials: true}
     ).then(function(res) {
       setCurrentUser(false);
+      setUsername(null);
     });
     /* OG
     client.post(
