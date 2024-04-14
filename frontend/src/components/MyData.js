@@ -42,11 +42,9 @@ const GameLogSection = styled.div`
 `;
 
 const NewGameSection = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-columns: minmax(auto, 1fr);
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    grid-template-areas: 'col1 col2';
 `;
 
 const Column1 = styled.div`
@@ -103,8 +101,8 @@ const StyledTd = styled.td`
 `;
 
 const AddDataDiv = styled.div`
-    margin-bottom: 35px;
     font-size: 18px;
+    font-weight: 800;
     line-height: 24px;
     color: #f7f8fa;
 `;
@@ -130,16 +128,24 @@ const StyledButton = styled.button`
         color: #000;
     }
 `;
+
+const StyledInput = styled.input`
+    display: block;
+    margin: 20px 0;
+    padding: 10px;
+    font-size: 16px;
+`;
+
 let drawLayers = false;
 
-let data = []
+
 
 export default function MyData() {
     const navigate = useNavigate();
     const { email } = useContext(EmailContext);
     const [file, setFile] = useState(undefined);
-    const [data, setData] = useState([]);
     const [showImage, setShowImage] = useState(false);
+    const [data, setData] = useState([]);
 
     const handleImageClick = () => {
         navigate('/gamedetails');
@@ -200,19 +206,10 @@ export default function MyData() {
             </HomeContainer>
             <HomeContainer>
                 <SectionContainer>
-                    <NewGameSection>
-                        <Column1>
-                        <TextContent>
-                            <AddDataDiv>Add data</AddDataDiv>
-                            <input type="file" accept='.gpx' onChange={handleFileChange}/>
-                            <TheMap gpxfile={file} thisEmail={email}/>
-                        </TextContent>
-                        </Column1>
-                        <Column2>
-                            <ImgContainer>
-                                <div id="map"></div>
-                            </ImgContainer>
-                        </Column2>
+                    <NewGameSection>  
+                        <AddDataDiv>Add data</AddDataDiv>
+                        <StyledInput type="file" accept='.gpx' onChange={handleFileChange}/>
+                        <TheMap gpxfile={file} thisEmail={email} setData={setData}/>
                     </NewGameSection>
                 </SectionContainer>
             </HomeContainer> 
@@ -317,8 +314,15 @@ function TheMap (props) {
             }
         ).then(function(res) {
             console.log("Successful POST. Reload gamedata table");
+            // After successfully posting new game data, fetch the updated data
+            client.post("/api/gamedata", { email: email })
+                .then(function(res) {
+                    props.setData(res.data);
+                });
         });
+    
     }
+
     return (
         <div>
             <Form onSubmit={e => SubmitGameData(e)}>
@@ -330,15 +334,12 @@ function TheMap (props) {
                     <Form.Label>Position</Form.Label>
                     <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group>
+                {/* <Form.Group className="mb-3" controlId="formPosition">
+                    <Form.Label>TimeStamp</Form.Label>
+                    <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
+                    <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
+                </Form.Group> */}
                 <Button variant="primary" type="submit">Submit New Game Data</Button>
-                <div id="slide-container">
-
-                    <input type="range" min="0" max="10000000" value="0" className="slider" id="start-point"/>
-                    <input type="range" min="0" max="10000000" value="10000000" className="slider visible" id="end-point"/>
-                </div>
-                <div id="slider" padding="10px">
-                    <Slider gpxFile={props.gpxfile}/>
-                </div>
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -65,7 +65,7 @@ const NavbarContainer = styled.div`
     display: flex;
     justify-content: space-between;
     height: 80px;
-    z-index: 1;
+    z-index: 100;
     width: 100%;
     padding: 0 24px;
     max-width: 1100px;
@@ -115,11 +115,13 @@ const NavButton = styled.nav`
     align-items: center;
     margin-right: 24px;
     margin-left: 24px;
+
 `;
 
 const NavButtonLink = styled(LinkRouter)`
     border-radius: 50px;
     background: #000;
+    z-index: 10;
     white-space: nowrap;
     padding: 10px 22px;
     color: #fff;
@@ -140,18 +142,15 @@ const NavButtonLink = styled(LinkRouter)`
 const NavBar = ({ currentUser, setCurrentUser }) => {
     const { email, setEmail } = useContext(EmailContext);
     const navigate = useNavigate();
-
     function submitLogout(e) {
         e.preventDefault();
         client.post(
             "/api/logout",
             {withCredentials: true}
         ).then(function(res) {
-        console.log('Server response:', res);
-        setCurrentUser(false);
-        setEmail('');
-        // Cookies.remove('username');
-        navigate('/', { replace: true });
+            console.log('Server response:', res);
+            setCurrentUser(false);
+            navigate('/', { replace: true });
         });
     }
 

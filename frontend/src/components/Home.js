@@ -1,6 +1,5 @@
 import React from 'react';
 import NavBar from './NavBar';
-import EyeGrabber from './EyeGrabber';
 import HomeContent from './HomeContent';
 import MyData from './MyData';
 
@@ -9,7 +8,6 @@ const Home = ({ currentUser, setCurrentUser }) => {
       return (
         <div>
           <NavBar currentUser={currentUser} setCurrentUser={setCurrentUser} />
-          {/* <EyeGrabber currentUser={currentUser} /> */}
           <MyData />
         </div>
       );
@@ -17,7 +15,6 @@ const Home = ({ currentUser, setCurrentUser }) => {
       return (
         <div>
           <NavBar />
-          {/* <EyeGrabber /> */}
           <HomeContent />
         </div>
       );
