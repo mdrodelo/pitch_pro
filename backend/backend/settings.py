@@ -30,8 +30,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost', # TODO Add :80 if it doesn't work on docker
-    #'http://localhost:3000', # for local testing
+    #'http://localhost', # TODO Add :80 if it doesn't work on docker
+    'http://localhost:3000', # for local testing
     'http://127.0.0.1',
     'http://0.0.0.0',
 ]
@@ -118,8 +118,8 @@ DATABASES = {
         'NAME': 'pitch_pro_db',
         'USER': 'db_user',
         'PASSWORD': 'user_pass',
-        'HOST': 'db', # for Docker
-        #'HOST': 'localhost', # for local testing
+        #'HOST': 'db', # for Docker
+        'HOST': 'localhost', # for local testing
         'PORT': '5432',
     }
 }

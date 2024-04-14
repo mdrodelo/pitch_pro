@@ -57,24 +57,27 @@ class NewGameData(APIView):
     #permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
+        events = request.data['events']
         gpx_data = data.parse_gpx(request.data['gpx'])
         title = request.data['title']
         email = request.data['email']
         position = request.data['position'] # TODO add position to Gamedata table
         date = gpx_data.at[0, 'SessionDate']
-        field = request.data['field'][0] # TODO get field parameters
+
+        print(events)
+        field = request.data['field'][0]
         field_params = ""
         for coordinate in field:
             if len(field_params) > 0:
                 field_params += " "
             field_params += str(coordinate['lat']) + " "
             field_params += str(coordinate['lng'])
-        #return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK) # TODO REMOVE ONCE parsing events array in parse_gpx is implemented
         gd = GameData.objects.create(
             game_title=title,
             field_parameters=field_params,
             game_date=date,
-            user_id=AppUser.objects.get(email=email) # TODO hardcoded. Need to fix
+            user_id=AppUser.objects.get(email=email)
         )
         player_movements = [
             PlayerMovement(

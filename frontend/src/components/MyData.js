@@ -1,8 +1,9 @@
 import React from 'react';
-import { useState, useEffect, useMemo, useContext, createContext } from 'react';
+import { useState, useEffect, useMemo, useContext, Children } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup } from 'react-leaflet';
 import { useMap } from 'react-leaflet/hooks';
 import ReactSlider from 'react-slider';
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
@@ -13,8 +14,9 @@ import './MyData.css';
 import styled from 'styled-components';
 import img from '../images/image3.svg';
 import client from "./api";
-import { EmailContext } from '../App';
 import { useNavigate } from 'react-router-dom';
+import { EmailContext } from '../App';
+import Slider from "./Slider";
 
 const HomeContainer = styled.div`
     color: #fff;
@@ -132,8 +134,6 @@ const StyledButton = styled.button`
 `;
 let drawLayers = false;
 
-let data = []
-
 export default function MyData() {
     const navigate = useNavigate();
     const { email } = useContext(EmailContext);
@@ -154,6 +154,16 @@ export default function MyData() {
         fileReader.readAsText(e.target.files[0], "UTF-8");
     }
 
+    function RefreshTable(e) {
+        e.preventDefault();
+        client.post("/api/gamedata",
+        {
+            email: email
+        }).then(function(res) {
+            setData(res.data);
+        });
+    }
+
     useEffect(() =>  {
         client.post("/api/gamedata",
         {
@@ -172,6 +182,7 @@ export default function MyData() {
                     <GameLogSection>
                         <Column1>
                         <TextContent>
+                            <button id="refresh-table" onClick={RefreshTable}>Refresh</button>
                             <StyledTable>
                                 <tr>
                                     <StyledTh>Title</StyledTh>
@@ -220,42 +231,71 @@ export default function MyData() {
     );
 }
 
-function Slider(data) {
+function OGSlider(props) {
     // https://zillow.github.io/react-slider/#reactslider
     // https://github.com/gpxstudio/gpxstudio.github.io/blob/master/js/slider.js
+    const [length, setLength] = useState(200);
+    useEffect(() => {
+        if (props.gpxElement != null){
+            setLength(props.gpxElement.length);
+        }
+
+        console.log(props.gpxElement);
+        console.log(length);
+
+    }, [props.gpxElement]);
+
     return (
-        <ReactSlider
-            className="customSlider"
-            thumbClassName="customSlider-Thumb"
-            trackClassName="customSlider-Track"
-            defaultValue={[0, 50]}
-            ariaLabel={['start', 'stop' ]}
-            max={200}
-            renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
-            pearling={false}
-            minDistance={10}
-        />
+        <div>
+            <ReactSlider
+                className="customSlider"
+                thumbClassName="customSlider-Thumb"
+                trackClassName="customSlider-Track"
+                defaultValue={[0, 50]}
+                ariaLabel={['start', 'stop' ]}
+                max={length}
+                renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
+                pearling={false}
+                minDistance={10}
+            />
+            <br/>
+            <table>
+                <tr>
+                    <td>Item 1</td>
+                    <td>Item 2</td>
+                </tr>
+            </table>
+        </div>
     );
 }
 
 function AddGpx(props) {
     const map = useMap();
-    if (props.gpxfile === undefined) return;
-    map.eachLayer(function (layer) {
-        if (layer["_gpx"] !== undefined) map.removeLayer(layer);
-    });
-    new L.GPX(props.gpxfile, {
-        async: true,
-        drawControl: true,
-        marker_options: {
-            startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
-            endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
-            shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
-        }
-    }).on('loaded', function (e) {
-        map.fitBounds(e.target.getBounds());
-        console.log(e);
-    }).addTo(map);
+    useEffect(() => {
+
+        if (props.gpxfile === undefined) return;
+
+        map.eachLayer(function (layer) {
+            if (layer["_gpx"] !== undefined) map.removeLayer(layer);
+        });
+        new L.GPX(props.gpxfile, {
+            async: true,
+            drawControl: true,
+            marker_options: {
+                startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
+                endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
+                shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
+            }
+        }).on('loaded', function (e) {
+            map.fitBounds(e.target.getBounds());
+            //console.log(e); // TODO set value for context here?
+            //console.log(e.element.children[0].children[1].children[1].children)
+            //setGpxElem(e);
+            props.sendGpxElem(e.element.children[0].children[1].children[1].children);
+
+        }).addTo(map);
+    }, [props.gpxfile]);
+
 }
 
 function DrawControls({sendLatLngs}) {
@@ -298,10 +338,27 @@ function TheMap (props) {
     const [gameTitle, setGameTitle] = useState('');
     const [position, setPosition] = useState('');
     const [latLngs, setLatLngs] = useState(null);
+    const [gpxElem, setGpxElem] = useState(null);
+    const [timeArray, setTimeArray] = useState([]);
+    const [sliderList, setSliderList] = useState([]);
+    const [sliderArr, setSliderArr] = useState([]);
 
     function handleLatLngs(data) {
         setLatLngs(data);
     }
+    function handleGpxElem(e) {
+        setGpxElem(e);
+    }
+    function handleSliderArrUpdate(e) {
+        sliderArr[e[0]] = [e[1], e[2], e[3]];
+    }
+
+    const onSliderBtnClick = event => {
+        sliderArr.push([-1, 1, 0]);
+        //https://codesandbox.io/p/sandbox/add-react-component-onclick-oery4?file=%2Fsrc%2Findex.js%3A14%2C1
+        setSliderList(sliderList.concat(<Slider key={sliderList.length} index={sliderList.length} gpxElement={gpxElem} updateSliderArr={handleSliderArrUpdate}/>));
+        console.log(sliderList.length);
+    };
 
     function SubmitGameData(e) {
         e.preventDefault();
@@ -313,11 +370,14 @@ function TheMap (props) {
                 title: gameTitle,
                 position: position,
                 gpx: props.gpxfile,
-                field: latLngs
+                field: latLngs,
+                events: sliderArr
             }
         ).then(function(res) {
             console.log("Successful POST. Reload gamedata table");
         });
+        // https://mparavano.medium.com/find-filter-react-children-by-type-d9799fb78292
+        console.log(sliderArr);
     }
     return (
         <div>
@@ -331,24 +391,20 @@ function TheMap (props) {
                     <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group>
                 <Button variant="primary" type="submit">Submit New Game Data</Button>
-                <div id="slide-container">
-
-                    <input type="range" min="0" max="10000000" value="0" className="slider" id="start-point"/>
-                    <input type="range" min="0" max="10000000" value="10000000" className="slider visible" id="end-point"/>
-                </div>
-                <div id="slider" padding="10px">
-                    <Slider gpxFile={props.gpxfile}/>
+                <br/><br/>
+                <Button type="button" onClick={onSliderBtnClick}>Add Slider</Button>
+                <div id="sliders" padding="10px">
+                    {sliderList}
                 </div>
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                        <AddGpx gpxfile={props.gpxfile}/>
+                        <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem}/>
                         <DrawControls sendLatLngs={handleLatLngs}/>
                     </MapContainer>
                 </div>
             </Form>
-
         </div>
 
     );
