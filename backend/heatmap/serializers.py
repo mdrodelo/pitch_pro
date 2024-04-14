@@ -7,7 +7,7 @@ from heatmap.models import GameData, PlayerMovement
 class AllGameDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = GameData
-        exclude = ['user_id', 'game_id']
+        exclude = ['user_id']
 
 
 class GameDataSerializer(serializers.ModelSerializer):
