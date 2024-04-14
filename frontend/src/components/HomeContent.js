@@ -99,7 +99,7 @@ const HomeContent = () => {
         <div>
             <HomeContainer>
                 <SectionContainer>
-                    <AboutSection>
+                    <AboutSection id="about-section">
                         <Column1>
                         <TextContent>
                             <TopLine>Improve Your Game</TopLine>
@@ -117,7 +117,7 @@ const HomeContent = () => {
             </HomeContainer>
             <HomeContainer>
                 <SectionContainer>
-                    <InstructionsSection>
+                    <InstructionsSection id="instructions-section">
                         <Column1>
                         <TextContent>
                             <TopLine>Get Started in Minutes</TopLine>

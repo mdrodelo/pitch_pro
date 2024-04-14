@@ -14,6 +14,7 @@ import gpxpy
 import gpxpy.gpx
 import xml.etree.ElementTree as ET
 import pandas as pd
+import math
 
 
 
@@ -64,6 +65,166 @@ def parse_extensions(extensions):
         if 'hr' in node.tag:
             extension_dictionary['Heart Rate'] = node.text
     return extension_dictionary
+
+def lat_lon_adjust(df, latmin=0, lonmin=0):
+  # lat_min and lon_min need to be coordinates from the field parameters
+  for index, row in df.iterrows():
+    lat, lon, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'],df.at[index, 'Longitude'])
+    df.at[index, 'Latitude']=lat
+    df.at[index, 'Longitude']=lon
+  latmin, lonmin, _zn, _zl = utm.from_latlon(latmin, lonmin)
+
+  for index, row in df.iterrows():
+    df.at[index, 'Latitude'] =  df.at[index, 'Latitude']-latmin
+    df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
+
+  return df
+
+def degrees_to_radians(degrees):
+    return degrees * math.pi / 180
+
+def rotate_cartesian(x, y, angle_degrees):
+    # Convert angle from degrees to radians
+    angle_radians = math.radians(angle_degrees)
+
+    # Perform rotation
+    x_rotated = x * math.cos(angle_radians) - y * math.sin(angle_radians)
+    y_rotated = x * math.sin(angle_radians) + y * math.cos(angle_radians)
+
+    return x_rotated, y_rotated
+
+def rotate_df(df, angle):
+  for index, row in df.iterrows():
+    xr,yr=rotate_cartesian( df.at[index, 'Longitude'],df.at[index, 'Latitude'], -angle)
+    df.at[index, 'Latitude'] =  xr
+    df.at[index, 'Longitude'] = yr
+  return df
+
+def distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance between two points
+    on the Earth's surface using the Haversine formula.
+
+    Parameters:
+        lat1 (float): Latitude of the first point in degrees.
+        lon1 (float): Longitude of the first point in degrees.
+        lat2 (float): Latitude of the second point in degrees.
+        lon2 (float): Longitude of the second point in degrees.
+
+    Returns:
+        float: The distance between the two points in kilometers.
+    """
+    # Convert latitude and longitude from degrees to radians
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+
+    # Haversine formula
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+    a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    earth_radius_km = 6371000  # Radius of the Earth in kilometers
+    distance = earth_radius_km * c
+
+    return distance
+
+def calculate_azimuth(lat1, lon1, lat2, lon2):
+  # https://www.omnicalculator.com/other/azimuth
+  lat1 = math.radians(lat1)
+  lon1 = math.radians(lon1)
+  lat2 = math.radians(lat2)
+  lon2 = math.radians(lon2)
+  delta_lat = lat2 - lat1
+  delta_lon = lon2 - lon1
+  atan_part1 = math.sin(delta_lon) * math.cos(lat2)
+  atan_part2a = math.cos(lat1) * math.sin(lat2)
+  atan_part2b = math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon)
+  azimuth = math.atan2(atan_part1, atan_part2a - atan_part2b)
+  degrees = math.degrees(azimuth)
+  if degrees < 0:
+    degrees += 360
+  return degrees
+
+def side_selector(field):
+  """
+  Finds the index (field corner) containing the minimum longitude, aka "target"
+  Compares length of each side connected to that corner
+  Returns indexes of the target and index of the corner that it shares the shorter side with
+  """
+  min = 999
+  min_index = -1
+  for index, row in field.iterrows():
+    if row.Longitude < min:
+      min = row.Longitude
+      min_index = index
+  prev_index = min_index - 1 if min_index - 1 >= 0 else 3
+  next_index = min_index + 1 if min_index + 1 <= 3 else 0
+  distance_to_prev = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[prev_index, 'Latitude'], field.at[prev_index, 'Longitude'])
+  distance_to_next = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[next_index, 'Latitude'], field.at[next_index, 'Longitude'])
+  if min_index == -1:
+    # some sort of error, I don't know
+    return min_index, min_index
+  if (distance_to_prev > distance_to_next):
+    return min_index, next_index
+  else:
+    return min_index, prev_index
+
+def drop_outside_bounds(gpx, field):
+  # Drops gpx coordinates above max or below min (0)
+  gpx.drop(gpx[(gpx.Longitude > field.Longitude.max()) | (gpx.Longitude < 0)].index, inplace=True)
+  gpx.drop(gpx[(gpx.Latitude > field.Latitude.max()) | (gpx.Latitude < 0)].index, inplace=True)
+
+def scale_gpx(gpx, field):
+  """
+  Scales gpx coordinates according to ratio of regular field size to given field
+  regular field size: 105 x 68 meters
+  """
+  lon_scale = 105 / field.Longitude.max()
+  lat_scale = 68 / field.Latitude.max()
+  for index, row in gpx.iterrows():
+    gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * lat_scale
+    gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * lon_scale
+
+def align_to_positive(gpx, field, origin_index):
+  """
+  Makes field and gpx points positive if values are negative
+  """
+  prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
+  next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
+  # lat
+  origin_lat = field.at[origin_index, 'Latitude']
+  prev_lat = field.at[prev_index, 'Latitude']
+  next_lat = field.at[next_index, 'Latitude']
+  prev_length = prev_lat - origin_lat
+  next_length = next_lat - origin_lat
+  flip = False
+  if (abs(prev_length) > abs(next_length)):
+    if prev_length < 0: flip = True
+  else:
+    if next_length < 0: flip = True
+  if flip:
+    for index, row in gpx.iterrows():
+      gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * -1
+    for index, row in field.iterrows():
+      field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
+  # lon
+  origin_lon = field.at[origin_index, 'Longitude']
+  prev_lon = field.at[prev_index, 'Longitude']
+  next_lon = field.at[next_index, 'Longitude']
+  prev_length = prev_lon - origin_lon
+  next_length = next_lon - origin_lon
+  flip = False
+  if (abs(prev_length) > abs(next_length)):
+    if prev_length < 0: flip = True
+  else:
+    if next_length < 0: flip = True
+  if flip:
+    for index, row in gpx.iterrows():
+      gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
+    for index, row in field.iterrows():
+      field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
 
 """
 This function parses a .GPX file to extract the relevant data points: 
