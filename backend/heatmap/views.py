@@ -1,13 +1,13 @@
 from django.shortcuts import render
-from django.db import transaction
+from django.db import transaction, connection
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework import permissions, status
-from .serializers import GameDataSerializer, AllGameDataSerializer
+from .serializers import GameDataSerializer, AllGameDataSerializer, HeatMapSerializer, SingleGameDataSerializer
 from rest_framework.response import Response
 import base64
-import heatmap.data as data
+import heatmap.data as GPXFunctions
 import pandas as pd
 
 from user_api.models import AppUser
@@ -18,12 +18,26 @@ from mplsoccer import Pitch, Sbopen
 import io
 # end of these imports
 
+# DO NOT REMOVE Fixes a weird NSInternalInconsistencyException
+import matplotlib
+matplotlib.use('Agg')
 
 class Heatmap(APIView):
     permission_classes = (permissions.AllowAny,)
 
-    def get(self, request):
-        print(request)
+    def post(self, request):
+        game_id = request.data['game_id']
+        #res = PlayerMovement.objects.all().filter(game_id=game_id)
+        # serialized_dataframe = pd.DataFrame(HeatMapSerializer(res, many=True))
+        query = str(PlayerMovement.objects.all().filter(game_id=game_id).query)
+        df = pd.read_sql_query(query, connection)
+        field_res = GameData.objects.get(game_id=game_id)
+        field = SingleGameDataSerializer(field_res).data.get('field_parameters')
+        heatmap = GPXFunctions.draw_heatmap(df, field)
+        return Response({'heatmap': heatmap}, status=status.HTTP_200_OK)
+
+        """
+        Leaving for reference
         parser = Sbopen()
         df_false9 = parser.event(69249)[0]
         df_false9 = df_false9.loc[df_false9.player_id == 5503, ['x', 'y']]
@@ -39,7 +53,7 @@ class Heatmap(APIView):
         res = res.decode('utf-8')
         data = "data:image/jpeg;base64," + res
         return Response({'heatmap': data}, status=status.HTTP_200_OK)
-
+        """
 
 class AllGameData(APIView):
     #permission_classes = (permissions.IsAuthenticated,)
@@ -58,13 +72,11 @@ class NewGameData(APIView):
 
     def post(self, request):
         events = request.data['events']
-        gpx_data = data.parse_gpx(request.data['gpx'])
+        gpx_data = GPXFunctions.parse_gpx(request.data['gpx'], events)
         title = request.data['title']
         email = request.data['email']
         position = request.data['position'] # TODO add position to Gamedata table
         date = gpx_data.at[0, 'SessionDate']
-
-        print(events)
         field = request.data['field'][0]
         field_params = ""
         for coordinate in field:
@@ -72,7 +84,7 @@ class NewGameData(APIView):
                 field_params += " "
             field_params += str(coordinate['lat']) + " "
             field_params += str(coordinate['lng'])
-        return Response(status=status.HTTP_200_OK) # TODO REMOVE ONCE parsing events array in parse_gpx is implemented
+        #return Response(status=status.HTTP_200_OK) # TODO REMOVE ONCE parsing events array in parse_gpx is implemented
         gd = GameData.objects.create(
             game_title=title,
             field_parameters=field_params,
@@ -85,7 +97,7 @@ class NewGameData(APIView):
                 latitude=row['Latitude'],
                 longitude=row['Longitude'],
                 heart_rate=row['Heart Rate'] if not pd.isna(row['Heart Rate']) else None,
-                switch_sides=False,
+                switch_sides=row['Side'],
                 user_id=AppUser.objects.get(email=email),
                 game_id=gd,
             )

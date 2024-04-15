@@ -5,38 +5,60 @@ pip install gpxpy
 or if you are using python3.xx (you can find out by typing "python --version" in the command line), use the command:
 pip3 install gpxpy
 """
-
+import io
 
 import utm as utm
 import os
-import django
 import gpxpy
 import gpxpy.gpx
 import xml.etree.ElementTree as ET
 import pandas as pd
+import sys
 import math
+from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
+import base64
 
 
-
-def parse_gpx(gpxFile):
+def parse_gpx(gpxFile, events=[]):
     gpx = gpxpy.parse(gpxFile)
     data_points = []
     total_distance = None
     average_speed = None
-
+    events_length = len(events)
+    e_index = 0
+    play_start = sys.maxsize - 1
+    play_end = sys.maxsize
+    if events_length > 0:
+        play_start = events[e_index][0]
+        play_end = events[e_index][1]
+    point_count = 0
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
+                if point_count > play_end:
+                    e_index += 1
+                    if e_index >= events_length:
+                        play_start = sys.maxsize - 1
+                        play_end = sys.maxsize
+                    else:
+                        play_start = events[e_index][0]
+                        play_end = events[e_index][1]
+                if point_count < play_start:
+                    point_count += 1
+                    continue
+
                 data_dictionary = {
                     'SessionDate': point.time.strftime('%Y-%m-%d'),
                     'Timestamp': point.time.strftime('%H:%M:%S'),
                     'Latitude': point.latitude,
-                    'Longitude': point.longitude
+                    'Longitude': point.longitude,
+                    'Side': events[e_index][2]
                 }
                 extension_data = parse_extensions(point.extensions)
                 for key, value in extension_data.items():
                     data_dictionary[key] = value
                 data_points.append(data_dictionary)
+                point_count += 1
 
     # Parse the exercise info directly using ElementTree to avoid namespace issues
     root = ET.fromstring(gpxFile)
@@ -66,10 +88,48 @@ def parse_extensions(extensions):
             extension_dictionary['Heart Rate'] = node.text
     return extension_dictionary
 
+
+def draw_heatmap(gpx_df, field):
+    gpx_df = gpx_df.rename(columns={"longitude":"Longitude", "latitude":"Latitude"})
+    field_params = parse_field_params(field)
+    field_df = pd.DataFrame(field_params, columns=['Longitude', 'Latitude'])
+    corner0_index, corner1_index = side_selector(field_df)
+    angle = calculate_azimuth(
+        field_df.at[corner0_index, 'Latitude'],
+        field_df.at[corner0_index, 'Longitude'],
+        field_df.at[corner1_index, 'Latitude'],
+        field_df.at[corner1_index, 'Longitude'])
+    angle = angle % 180
+    lat_lon_adjust(gpx_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
+    lat_lon_adjust(field_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
+    rotate_df(field_df, angle)
+    rotate_df(gpx_df, angle)
+    align_to_positive(gpx_df, field_df, corner0_index)
+    drop_outside_bounds(gpx_df, field_df)
+    scale_gpx(gpx_df, field_df)
+    pitch = Pitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
+    fig, ax = pitch.draw()
+    kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    heatmap = buf.read()
+    res = base64.b64encode(heatmap)
+    res = res.decode('utf-8')
+    data = "data:image/jpeg;base64," + res
+    return data
+
+def parse_field_params(field):
+    parsed = field.split(" ")
+    field_params = []
+    for i in range(0, len(parsed), 2):
+        field_params.append([float(parsed[i + 1]), float(parsed[i])])
+    return field_params
+
 def lat_lon_adjust(df, latmin=0, lonmin=0):
   # lat_min and lon_min need to be coordinates from the field parameters
   for index, row in df.iterrows():
-    lat, lon, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'],df.at[index, 'Longitude'])
+    lat, lon, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'], df.at[index, 'Longitude'])
     df.at[index, 'Latitude']=lat
     df.at[index, 'Longitude']=lon
   latmin, lonmin, _zn, _zl = utm.from_latlon(latmin, lonmin)
@@ -79,6 +139,7 @@ def lat_lon_adjust(df, latmin=0, lonmin=0):
     df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
 
   return df
+
 
 def degrees_to_radians(degrees):
     return degrees * math.pi / 180
@@ -93,12 +154,14 @@ def rotate_cartesian(x, y, angle_degrees):
 
     return x_rotated, y_rotated
 
+
 def rotate_df(df, angle):
   for index, row in df.iterrows():
     xr,yr=rotate_cartesian( df.at[index, 'Longitude'],df.at[index, 'Latitude'], -angle)
     df.at[index, 'Latitude'] =  xr
     df.at[index, 'Longitude'] = yr
   return df
+
 
 def distance(lat1, lon1, lat2, lon2):
     """
@@ -130,6 +193,7 @@ def distance(lat1, lon1, lat2, lon2):
 
     return distance
 
+
 def calculate_azimuth(lat1, lon1, lat2, lon2):
   # https://www.omnicalculator.com/other/azimuth
   lat1 = math.radians(lat1)
@@ -146,6 +210,7 @@ def calculate_azimuth(lat1, lon1, lat2, lon2):
   if degrees < 0:
     degrees += 360
   return degrees
+
 
 def side_selector(field):
   """
@@ -171,10 +236,12 @@ def side_selector(field):
   else:
     return min_index, prev_index
 
+
 def drop_outside_bounds(gpx, field):
   # Drops gpx coordinates above max or below min (0)
   gpx.drop(gpx[(gpx.Longitude > field.Longitude.max()) | (gpx.Longitude < 0)].index, inplace=True)
   gpx.drop(gpx[(gpx.Latitude > field.Latitude.max()) | (gpx.Latitude < 0)].index, inplace=True)
+
 
 def scale_gpx(gpx, field):
   """
@@ -186,6 +253,7 @@ def scale_gpx(gpx, field):
   for index, row in gpx.iterrows():
     gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * lat_scale
     gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * lon_scale
+
 
 def align_to_positive(gpx, field, origin_index):
   """
@@ -225,129 +293,3 @@ def align_to_positive(gpx, field, origin_index):
       gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
     for index, row in field.iterrows():
       field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
-
-"""
-This function parses a .GPX file to extract the relevant data points: 
-SessionDate (yyyy-mm-dd), Timestamp (hh-mm-ss), Latitude, and Longitude
-
-:param gpx_file_path: Path to the GPX file to be parsed.
-:return: A list of dictionaries, each containing the extracted information for each point.
-"""
-
-"""
-def parse_gpx_data(gpxFile):
-    with open(gpxFile, 'r') as gpx_file:
-        gpx_data = gpx_file.read()
-        gpx = gpxpy.parse(gpx_data)
-
-    data_points = []
-    total_distance = None
-    average_speed = None
-
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for point in segment.points:
-                data_dictionary = {
-                    'SessionDate': point.time.strftime('%Y-%m-%d'),
-                    'Timestamp': point.time.strftime('%H:%M:%S'),
-                    'Latitude': point.latitude,
-                    'Longitude': point.longitude
-                }
-                extension_data = parseExtensions(point.extensions)
-                for key, value in extension_data.items():
-                    data_dictionary[key] = value
-                data_points.append(data_dictionary)
-
-    # Parse the exercise info directly using ElementTree to avoid namespace issues
-    root = ET.fromstring(gpx_data)
-    ns = {'ns': 'http://www.topografix.com/GPX/1/1'}
-    exerciseInfo = root.find('.//ns:exerciseinfo', namespaces=ns)
-    if exerciseInfo is not None:
-        distance_elem = exerciseInfo.find('.//ns:distance', namespaces=ns)
-        avgspeed_elem = exerciseInfo.find('.//ns:avgspeed', namespaces=ns)
-        if distance_elem is not None:
-            total_distance = float(distance_elem.text)
-        if avgspeed_elem is not None:
-            average_speed = float(avgspeed_elem.text)
-
-    df = pd.DataFrame(data_points)
-
-    return data_points, average_speed, total_distance, df
-
-
-def parseExtensions(extensions):
-    extensionDictionary = {}
-    if len(extensions) == 0:
-        return extensionDictionary
-    for node in extensions[0].iter():
-        # If use of gpx track point extensions increases, add here
-        if 'hr' in node.tag:
-            extensionDictionary['Heart Rate'] = node.text
-    return extensionDictionary
-
-
-gpx_file_path = '../sample_data/data1.gpx'
-dataPoints, averageSpeed, distance, df = parse_gpx_data(gpx_file_path)
-
-##print(f"Data Points: {dataPoints}")
-##print(f"Average Speed: {averageSpeed} m/s")  # Assuming the speed is in meters per second
-##print(f"Distance: {distance} meters")  # Assuming the distance is in meters
-
-print(df)
-
-df1 = df
-print(df1)
-
-def lat_lon_adjust(df):
-
-
-    for index, row in df.iterrows():
-
-
-
-            lat, lon,zone,character = utm.from_latlon(df.at[index, 'Latitude'],df.at[index, 'Longitude'])
-            df.at[index, 'Latitude']=lat
-            df.at[index, 'Longitude']=lon
-
-    latmin = df['Latitude'].min()
-
-
-    lonmin = df['Longitude'].min()
-
-
-    for index, row in df.iterrows():
-        df.at[index, 'Latitude'] =  df.at[index, 'Latitude']-latmin
-        df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
-
-
-
-
-
-    return df
-
-
-lat_lon_adjust(df1)
-print(df1)
-# looping through the df and for each row, creating a new PlayerMovement instance with the data from that row
-player_movements = [
-    PlayerMovement(
-        session_date=row['SessionDate'],
-        timestamp=row['Timestamp'],
-        latitude=row['Latitude'],
-        longitude=row['Longitude'],
-        heart_rate=row['Heart Rate'] if not pd.isna(row['Heart Rate']) else None
-    )
-    for index, row in df.iterrows()
-]
-
-# using Django's 'bulk_create' to insert data efficiently
-with transaction.atomic():  # using a transaction to ensure data integrity
-    PlayerMovement.objects.bulk_create(player_movements)
-
-
-# # printing the database to make sure the data went thru
-# movements = PlayerMovement.objects.all() # add '[:10]' at the end of this line to just see the first 10 entries
-# print(movements)
-
-
-"""

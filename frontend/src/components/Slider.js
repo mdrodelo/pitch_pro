@@ -8,18 +8,16 @@ export default function Slider(props) {
     const [length, setLength] = useState(200);
     const [arr, setArr] = useState([]);
     const [value, setValue] = useState([10, 50]);
-    const [startTime, setStartTime] = useState("START TIME");
-    const [endTime, setEndTime] = useState("END TIME");
-    const [check, setCheck] = useState(0);
-    function handleCheckbox() {
-        if (check === 0) setCheck(1);
-        else setCheck(0);
+    const [check, setCheck] = useState(false);
+    function handleCheckbox(e) {
+        if (e.target.checked) setCheck(true);
+        else setCheck(false);
         handleUpdate();
     }
     //const handleCheckbox = (value) => setCheck(checked); handleUpdate();
     function handleUpdate() {
         props.updateSliderArr([props.index, value[0], value[1], check]);
-        console.log(props.index, value[0], value[1], check);
+        //console.log(props.index, value[0], value[1], check);
     }
     useEffect(() => {
         if (props.gpxElement != null){
@@ -39,7 +37,11 @@ export default function Slider(props) {
     return (
         <div id={props.key}>
     <Row>
-        <Col><Checkbox onChange={handleCheckbox}/></Col>
+        <Col><Checkbox
+            onChange={(value, checked, event) => {
+                handleCheckbox(event);
+            }}
+        /></Col>
       <Col md={10} xs={12}>
         <RangeSlider
             min={0}

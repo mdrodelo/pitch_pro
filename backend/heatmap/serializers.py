@@ -3,7 +3,6 @@ from heatmap.models import GameData, PlayerMovement
 #from user_api.models import AppUser
 # https://www.django-rest-framework.org/api-guide/serializers/
 
-
 class AllGameDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = GameData
@@ -28,4 +27,12 @@ class GameDataSerializer(serializers.ModelSerializer):
 
 
 class HeatMapSerializer(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = PlayerMovement
+        exclude = ['user_id', 'game_id', 'movement_id']
+
+class SingleGameDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GameData
+        #fields = '__all__'
+        exclude = ['user_id', 'game_id', 'game_title', 'game_date']

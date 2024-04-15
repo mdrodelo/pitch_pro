@@ -11,6 +11,7 @@ import 'leaflet-draw';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
+import Heatmap from './Heatmap';
 import styled from 'styled-components';
 import img from '../images/image3.svg';
 import client from "./api";
@@ -140,10 +141,12 @@ export default function MyData() {
     const [file, setFile] = useState(undefined);
     const [data, setData] = useState([]);
     const [showImage, setShowImage] = useState(false);
+    const [gameId, setGameId] = useState(-1);
 
-    const handleImageClick = () => {
-        navigate('/gamedetails');
-    };
+    const handleViewClick = (e, value) => {
+        setGameId(value);
+        e.preventDefault();
+    }
 
     function handleFileChange(e) {
         let fileReader = new FileReader();
@@ -171,7 +174,6 @@ export default function MyData() {
         })
         .then(function(res) {
             setData(res.data);
-            //data = res.data;
         });
     }, []);
 
@@ -191,10 +193,10 @@ export default function MyData() {
                                 </tr>
                                 {data.map((val, key) => {
                                     return (
-                                        <tr key={key}>
+                                        <tr id={val.game_id}>
                                             <StyledTd>{val.game_title}</StyledTd>
                                             <StyledTd>{val.game_date}</StyledTd>
-                                            <StyledTd><StyledButton onClick={() => setShowImage(prevShowImage => !prevShowImage)}>View</StyledButton></StyledTd>
+                                            <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
                                         </tr>
                                     )
                                 })}
@@ -203,7 +205,7 @@ export default function MyData() {
                         </Column1>
                         <Column2>
                             <ImgContainer>
-                                {showImage && <Img src={img} alt='all' onClick={handleImageClick} />}
+                                <Heatmap id={gameId}/>
                             </ImgContainer>
                         </Column2>
                     </GameLogSection>
@@ -272,9 +274,7 @@ function OGSlider(props) {
 function AddGpx(props) {
     const map = useMap();
     useEffect(() => {
-
         if (props.gpxfile === undefined) return;
-
         map.eachLayer(function (layer) {
             if (layer["_gpx"] !== undefined) map.removeLayer(layer);
         });
@@ -295,7 +295,6 @@ function AddGpx(props) {
 
         }).addTo(map);
     }, [props.gpxfile]);
-
 }
 
 function DrawControls({sendLatLngs}) {
@@ -362,7 +361,6 @@ function TheMap (props) {
 
     function SubmitGameData(e) {
         e.preventDefault();
-
         client.post(
             "/api/NewGame",
             {
@@ -377,7 +375,7 @@ function TheMap (props) {
             console.log("Successful POST. Reload gamedata table");
         });
         // https://mparavano.medium.com/find-filter-react-children-by-type-d9799fb78292
-        console.log(sliderArr);
+
     }
     return (
         <div>
@@ -397,7 +395,7 @@ function TheMap (props) {
                     {sliderList}
                 </div>
                 <div id="map" padding={"10px"}>
-                    <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                    <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
                         <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem}/>
