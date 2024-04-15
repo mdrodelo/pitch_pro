@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect, useMemo, useContext, createContext } from 'react';
+import { useState, useEffect, useMemo, useContext, createContext, Children } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup } from 'react-leaflet';
 import { useMap } from 'react-leaflet/hooks';
 import ReactSlider from 'react-slider';
@@ -11,10 +11,11 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
 import styled from 'styled-components';
-import img from '../images/image3.svg';
+import Heatmap from './Heatmap';
 import client from "./api";
 import { EmailContext } from '../App';
 import { useNavigate } from 'react-router-dom';
+import Slider from "./Slider";
 
 const HomeContainer = styled.div`
     color: #fff;
@@ -138,18 +139,17 @@ const StyledInput = styled.input`
 
 let drawLayers = false;
 
-
-
 export default function MyData() {
     const navigate = useNavigate();
     const { email } = useContext(EmailContext);
     const [file, setFile] = useState(undefined);
-    const [showImage, setShowImage] = useState(false);
     const [data, setData] = useState([]);
+    const [gameId, setGameId] = useState(-1);
 
-    const handleImageClick = () => {
-        navigate('/gamedetails');
-    };
+    const handleViewClick = (e, value) => {
+        setGameId(value);
+        e.preventDefault();
+    }
 
     function handleFileChange(e) {
         let fileReader = new FileReader();
@@ -186,10 +186,10 @@ export default function MyData() {
                                 </tr>
                                 {data.map((val, key) => {
                                     return (
-                                        <tr key={key}>
+                                        <tr id={val.game_id}>
                                             <StyledTd>{val.game_title}</StyledTd>
                                             <StyledTd>{val.game_date}</StyledTd>
-                                            <StyledTd><StyledButton onClick={() => setShowImage(prevShowImage => !prevShowImage)}>View</StyledButton></StyledTd>
+                                            <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
                                         </tr>
                                     )
                                 })}
@@ -198,7 +198,7 @@ export default function MyData() {
                         </Column1>
                         <Column2>
                             <ImgContainer>
-                                {showImage && <Img src={img} alt='all' onClick={handleImageClick} />}
+                                <Heatmap id={gameId}/>
                             </ImgContainer>
                         </Column2>
                     </GameLogSection>
@@ -217,42 +217,30 @@ export default function MyData() {
     );
 }
 
-function Slider(data) {
-    // https://zillow.github.io/react-slider/#reactslider
-    // https://github.com/gpxstudio/gpxstudio.github.io/blob/master/js/slider.js
-    return (
-        <ReactSlider
-            className="customSlider"
-            thumbClassName="customSlider-Thumb"
-            trackClassName="customSlider-Track"
-            defaultValue={[0, 50]}
-            ariaLabel={['start', 'stop' ]}
-            max={200}
-            renderThumb={(props, state) => <div {...props}>{state.valueNow}</div>}
-            pearling={false}
-            minDistance={10}
-        />
-    );
-}
-
 function AddGpx(props) {
     const map = useMap();
-    if (props.gpxfile === undefined) return;
-    map.eachLayer(function (layer) {
-        if (layer["_gpx"] !== undefined) map.removeLayer(layer);
-    });
-    new L.GPX(props.gpxfile, {
-        async: true,
-        drawControl: true,
-        marker_options: {
-            startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
-            endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
-            shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
-        }
-    }).on('loaded', function (e) {
-        map.fitBounds(e.target.getBounds());
-        console.log(e);
-    }).addTo(map);
+    useEffect(() => {
+        if (props.gpxfile === undefined) return;
+        map.eachLayer(function (layer) {
+            if (layer["_gpx"] !== undefined) map.removeLayer(layer);
+        });
+        new L.GPX(props.gpxfile, {
+            async: true,
+            drawControl: true,
+            marker_options: {
+                startIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-start.png',
+                endIconUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-icon-end.png',
+                shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet-gpx@1.7.0/pin-shadow.png'
+            }
+        }).on('loaded', function (e) {
+            map.fitBounds(e.target.getBounds());
+            //console.log(e); // TODO set value for context here?
+            //console.log(e.element.children[0].children[1].children[1].children)
+            //setGpxElem(e);
+            props.sendGpxElem(e.element.children[0].children[1].children[1].children);
+
+        }).addTo(map);
+    }, [props.gpxfile]);
 }
 
 function DrawControls({sendLatLngs}) {
@@ -295,10 +283,29 @@ function TheMap (props) {
     const [gameTitle, setGameTitle] = useState('');
     const [position, setPosition] = useState('');
     const [latLngs, setLatLngs] = useState(null);
+    const [gpxElem, setGpxElem] = useState(null);
+    const [timeArray, setTimeArray] = useState([]);
+    const [sliderList, setSliderList] = useState([]);
+    const [sliderArr, setSliderArr] = useState([]);
 
     function handleLatLngs(data) {
         setLatLngs(data);
     }
+
+    function handleGpxElem(e) {
+        setGpxElem(e);
+    }
+
+    function handleSliderArrUpdate(e) {
+        sliderArr[e[0]] = [e[1], e[2], e[3]];
+    }
+
+    const onSliderBtnClick = event => {
+        sliderArr.push([-1, 1, 0]);
+        //https://codesandbox.io/p/sandbox/add-react-component-onclick-oery4?file=%2Fsrc%2Findex.js%3A14%2C1
+        setSliderList(sliderList.concat(<Slider key={sliderList.length} index={sliderList.length} gpxElement={gpxElem} updateSliderArr={handleSliderArrUpdate}/>));
+        console.log(sliderList.length);
+    };
 
     function SubmitGameData(e) {
         e.preventDefault();
@@ -325,7 +332,8 @@ function TheMap (props) {
                 title: gameTitle,
                 position: position,
                 gpx: props.gpxfile,
-                field: latLngs
+                field: latLngs,
+                events: sliderArr
             }
         ).then(function(res) {
             console.log("Successful POST. Reload gamedata table");
@@ -345,28 +353,32 @@ function TheMap (props) {
             <Form onSubmit={e => { SubmitGameData(e); setGameTitle(''); setPosition(''); setLatLngs(null); }}>
                 <Form.Group className="mb-3" controlId="formGameTitle">
                     <Form.Label>Game Title</Form.Label>
-                    <Form.Control placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
+                    <Form.Control style={{ color: 'black' }} placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="formPosition">
                     <Form.Label>Position</Form.Label>
-                    <Form.Control placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
+                    <Form.Control style={{ color: 'black' }} placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group>
                 {/* <Form.Group className="mb-3" controlId="formPosition">
                     <Form.Label>TimeStamp</Form.Label>
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group> */}
-                <Button variant="primary" type="submit">Submit New Game Data</Button>
+                <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
+                <br/><br/>
+                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick}>Add Slider</Button>
+                <div id="sliders" padding="10px">
+                    {sliderList}
+                </div>
                 <div id="map" padding={"10px"}>
-                    <MapContainer center={[51.505, -0.09]} zoom={17} scrollWheelZoom={false}>
+                    <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                        <AddGpx gpxfile={props.gpxfile}/>
+                        <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem}/>
                         <DrawControls sendLatLngs={handleLatLngs}/>
                     </MapContainer>
                 </div>
             </Form>
-
         </div>
 
     );

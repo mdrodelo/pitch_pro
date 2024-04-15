@@ -28,6 +28,7 @@
     "react-scroll": "^1.9.0",
     "react-slider": "^2.0.6",
     "reactstrap": "^9.2.2",
+    "rsuite": "^5.59.1",
     "sort-by": "^1.2.0",
     "styled-components": "^6.1.8",
     "web-vitals": "^2.1.4"

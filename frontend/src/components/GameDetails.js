@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import img from '../images/image3.svg';
 import { LineGraph } from './Line'
+import client from "./api";
 
 const DetailsContainer = styled.div`
     color: #fff;
@@ -79,6 +80,15 @@ const ButtonContainer = styled.div`
 
 export default function GameDetails() {
     const [selected, setSelected] = useState(null);
+    const [image, setImage] = useState('');
+    let location = useLocation();
+    let gameId = location.state && location.state.gameId;
+
+    client.post("api/heatmap", {
+        game_id: gameId
+    }).then(function(res) {
+        setImage(res.data['heatmap']);
+    });
 
     return (
         <DetailsContainer>
@@ -107,7 +117,7 @@ export default function GameDetails() {
             </ButtonContainer>
             <MidSection>
                 {selected === 'HeartRate' && <LineGraph id="LineGraph1" />}
-                {selected === 'HeatMap' && <Image src={img} alt={'all'} />}
+                {selected === 'HeatMap' && <Image src={image} alt='all' />}
                 {selected === 'VitalStats' && <LineGraph id="LineGraph2" />}
             </MidSection>
         </DetailsContainer>
