@@ -5,58 +5,63 @@ pip install gpxpy
 or if you are using python3.xx (you can find out by typing "python --version" in the command line), use the command:
 pip3 install gpxpy
 """
+import io
 
-import math
 import utm as utm
 import os
-import django
 import gpxpy
 import gpxpy.gpx
 import xml.etree.ElementTree as ET
 import pandas as pd
+import sys
+import math
+from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
+import base64
 
 
-# Set up the Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'PitchPro.settings')
-django.setup()
-
-from heatmap.models import PlayerMovement
-from django.db import transaction
-
-"""
-This function parses a .GPX file to extract the relevant data points: 
-SessionDate (yyyy-mm-dd), Timestamp (hh-mm-ss), Latitude, and Longitude
-
-:param gpx_file_path: Path to the GPX file to be parsed.
-:return: A list of dictionaries, each containing the extracted information for each point.
-"""
-
-
-def parse_gpx_data(gpxFile):
-    with open(gpxFile, 'r') as gpx_file:
-        gpx_data = gpx_file.read()
-        gpx = gpxpy.parse(gpx_data)
-
+def parse_gpx(gpxFile, events=[]):
+    gpx = gpxpy.parse(gpxFile)
     data_points = []
     total_distance = None
     average_speed = None
-
+    events_length = len(events)
+    e_index = 0
+    play_start = sys.maxsize - 1
+    play_end = sys.maxsize
+    if events_length > 0:
+        play_start = events[e_index][0]
+        play_end = events[e_index][1]
+    point_count = 0
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
+                if point_count > play_end:
+                    e_index += 1
+                    if e_index >= events_length:
+                        play_start = sys.maxsize - 1
+                        play_end = sys.maxsize
+                    else:
+                        play_start = events[e_index][0]
+                        play_end = events[e_index][1]
+                if point_count < play_start:
+                    point_count += 1
+                    continue
+
                 data_dictionary = {
                     'SessionDate': point.time.strftime('%Y-%m-%d'),
                     'Timestamp': point.time.strftime('%H:%M:%S'),
                     'Latitude': point.latitude,
-                    'Longitude': point.longitude
+                    'Longitude': point.longitude,
+                    'Side': events[e_index][2]
                 }
-                extension_data = parseExtensions(point.extensions)
+                extension_data = parse_extensions(point.extensions)
                 for key, value in extension_data.items():
                     data_dictionary[key] = value
                 data_points.append(data_dictionary)
+                point_count += 1
 
     # Parse the exercise info directly using ElementTree to avoid namespace issues
-    root = ET.fromstring(gpx_data)
+    root = ET.fromstring(gpxFile)
     ns = {'ns': 'http://www.topografix.com/GPX/1/1'}
     exerciseInfo = root.find('.//ns:exerciseinfo', namespaces=ns)
     if exerciseInfo is not None:
@@ -69,103 +74,75 @@ def parse_gpx_data(gpxFile):
 
     df = pd.DataFrame(data_points)
 
-    return data_points, average_speed, total_distance, df
+    # return data_points, average_speed, total_distance, df
+    return df
 
 
-def parseExtensions(extensions):
-    extensionDictionary = {}
+def parse_extensions(extensions):
+    extension_dictionary = {}
     if len(extensions) == 0:
-        return extensionDictionary
+        return extension_dictionary
     for node in extensions[0].iter():
         # If use of gpx track point extensions increases, add here
         if 'hr' in node.tag:
-            extensionDictionary['Heart Rate'] = node.text
-    return extensionDictionary
+            extension_dictionary['Heart Rate'] = node.text
+    return extension_dictionary
 
 
-gpx_file_path = '../sample_data/data1.gpx'
-dataPoints, averageSpeed, distance, df = parse_gpx_data(gpx_file_path)
+def draw_heatmap(gpx_df, field):
+    gpx_df = gpx_df.rename(columns={"longitude":"Longitude", "latitude":"Latitude"})
+    field_params = parse_field_params(field)
+    field_df = pd.DataFrame(field_params, columns=['Longitude', 'Latitude'])
+    corner0_index, corner1_index = side_selector(field_df)
+    angle = calculate_azimuth(
+        field_df.at[corner0_index, 'Latitude'],
+        field_df.at[corner0_index, 'Longitude'],
+        field_df.at[corner1_index, 'Latitude'],
+        field_df.at[corner1_index, 'Longitude'])
+    angle = angle % 180
+    lat_lon_adjust(gpx_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
+    lat_lon_adjust(field_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
+    rotate_df(field_df, angle)
+    rotate_df(gpx_df, angle)
+    align_to_positive(gpx_df, field_df, corner0_index)
+    drop_outside_bounds(gpx_df, field_df)
+    scale_gpx(gpx_df, field_df)
+    pitch = Pitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
+    fig, ax = pitch.draw()
+    kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    heatmap = buf.read()
+    res = base64.b64encode(heatmap)
+    res = res.decode('utf-8')
+    data = "data:image/jpeg;base64," + res
+    return data
 
-##print(f"Data Points: {dataPoints}")
-##print(f"Average Speed: {averageSpeed} m/s")  # Assuming the speed is in meters per second
-##print(f"Distance: {distance} meters")  # Assuming the distance is in meters
+def parse_field_params(field):
+    parsed = field.split(" ")
+    field_params = []
+    for i in range(0, len(parsed), 2):
+        field_params.append([float(parsed[i + 1]), float(parsed[i])])
+    return field_params
 
-print(df)
+def lat_lon_adjust(df, latmin=0, lonmin=0):
+  # lat_min and lon_min need to be coordinates from the field parameters
+  for index, row in df.iterrows():
+    lat, lon, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'], df.at[index, 'Longitude'])
+    df.at[index, 'Latitude']=lat
+    df.at[index, 'Longitude']=lon
+  latmin, lonmin, _zn, _zl = utm.from_latlon(latmin, lonmin)
 
-df1 = df
-print(df1)
+  for index, row in df.iterrows():
+    df.at[index, 'Latitude'] =  df.at[index, 'Latitude']-latmin
+    df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
 
-def lat_lon_adjust(df):
+  return df
 
-
-    for index, row in df.iterrows():
-
-
-
-            lat, lon,zone,character = utm.from_latlon(df.at[index, 'Latitude'],df.at[index, 'Longitude'])
-            df.at[index, 'Latitude']=lat
-            df.at[index, 'Longitude']=lon
-
-    latmin = df['Latitude'].min()
-    latmax = df['Latitude'].max()
-
-    lonmin = df['Longitude'].min()
-    lonmax = df['Longitude'].max()
-
-    for index, row in df.iterrows():
-        df.at[index, 'Latitude'] =  df.at[index, 'Latitude']-latmin
-        df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
-
-    latmin2 = df['Latitude'].min()
-
-    latmax2 = df['Latitude'].max()
-
-    lonmin2 = df['Longitude'].min()
-    lonmax2 = df['Longitude'].max()
-
-    for index, row in df.iterrows():
-        print(df.at[index, 'Latitude'],df.at[index, 'Longitude'])
-
-    return df
 
 def degrees_to_radians(degrees):
     return degrees * math.pi / 180
-
-def angle_from_horizontal(lat1, lon1, lat2, lon2):
-    # Convert degrees to radians
-    lat1 = degrees_to_radians(lat1)
-    lon1 = degrees_to_radians(lon1)
-    lat2 = degrees_to_radians(lat2)
-    lon2 = degrees_to_radians(lon2)
-
-    # Convert coordinates to Cartesian
-    x1 = math.cos(lat1) * math.cos(lon1)
-    y1 = math.cos(lat1) * math.sin(lon1)
-    z1 = math.sin(lat1)
-
-    x2 = math.cos(lat2) * math.cos(lon2)
-    y2 = math.cos(lat2) * math.sin(lon2)
-    z2 = math.sin(lat2)
-
-    # Calculate vector between the two points
-    dx = x2 - x1
-    dy = y2 - y1
-    dz = z2 - z1
-
-    # Calculate dot product
-    dot_product = dz
-
-    # Calculate magnitudes
-    magnitude_vector = math.sqrt(dx**2 + dy**2 + dz**2)
-    magnitude_horizontal = 1  # Magnitude of horizontal unit vector
-
-    # Calculate angle
-    angle = math.acos(dot_product / (magnitude_vector * magnitude_horizontal))
-
-    # Convert radians to degrees
-    angle_degrees = math.degrees(angle)
-
-    return angle_degrees
 
 def rotate_cartesian(x, y, angle_degrees):
     # Convert angle from degrees to radians
@@ -178,27 +155,141 @@ def rotate_cartesian(x, y, angle_degrees):
     return x_rotated, y_rotated
 
 
-lat_lon_adjust(df1)
-print(df1)
-# looping through the df and for each row, creating a new PlayerMovement instance with the data from that row
-player_movements = [
-    PlayerMovement(
-        session_date=row['SessionDate'],
-        timestamp=row['Timestamp'],
-        latitude=row['Latitude'],
-        longitude=row['Longitude'],
-        heart_rate=row['Heart Rate'] if not pd.isna(row['Heart Rate']) else None
-    )
-    for index, row in df.iterrows()
-]
-
-# using Django's 'bulk_create' to insert data efficiently
-with transaction.atomic():  # using a transaction to ensure data integrity
-    PlayerMovement.objects.bulk_create(player_movements)
+def rotate_df(df, angle):
+  for index, row in df.iterrows():
+    xr,yr=rotate_cartesian( df.at[index, 'Longitude'],df.at[index, 'Latitude'], -angle)
+    df.at[index, 'Latitude'] =  xr
+    df.at[index, 'Longitude'] = yr
+  return df
 
 
-# # printing the database to make sure the data went thru
-# movements = PlayerMovement.objects.all() # add '[:10]' at the end of this line to just see the first 10 entries
-# print(movements)
+def distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance between two points
+    on the Earth's surface using the Haversine formula.
+
+    Parameters:
+        lat1 (float): Latitude of the first point in degrees.
+        lon1 (float): Longitude of the first point in degrees.
+        lat2 (float): Latitude of the second point in degrees.
+        lon2 (float): Longitude of the second point in degrees.
+
+    Returns:
+        float: The distance between the two points in kilometers.
+    """
+    # Convert latitude and longitude from degrees to radians
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+
+    # Haversine formula
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+    a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    earth_radius_km = 6371000  # Radius of the Earth in kilometers
+    distance = earth_radius_km * c
+
+    return distance
 
 
+def calculate_azimuth(lat1, lon1, lat2, lon2):
+  # https://www.omnicalculator.com/other/azimuth
+  lat1 = math.radians(lat1)
+  lon1 = math.radians(lon1)
+  lat2 = math.radians(lat2)
+  lon2 = math.radians(lon2)
+  delta_lat = lat2 - lat1
+  delta_lon = lon2 - lon1
+  atan_part1 = math.sin(delta_lon) * math.cos(lat2)
+  atan_part2a = math.cos(lat1) * math.sin(lat2)
+  atan_part2b = math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon)
+  azimuth = math.atan2(atan_part1, atan_part2a - atan_part2b)
+  degrees = math.degrees(azimuth)
+  if degrees < 0:
+    degrees += 360
+  return degrees
+
+
+def side_selector(field):
+  """
+  Finds the index (field corner) containing the minimum longitude, aka "target"
+  Compares length of each side connected to that corner
+  Returns indexes of the target and index of the corner that it shares the shorter side with
+  """
+  min = 999
+  min_index = -1
+  for index, row in field.iterrows():
+    if row.Longitude < min:
+      min = row.Longitude
+      min_index = index
+  prev_index = min_index - 1 if min_index - 1 >= 0 else 3
+  next_index = min_index + 1 if min_index + 1 <= 3 else 0
+  distance_to_prev = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[prev_index, 'Latitude'], field.at[prev_index, 'Longitude'])
+  distance_to_next = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[next_index, 'Latitude'], field.at[next_index, 'Longitude'])
+  if min_index == -1:
+    # some sort of error, I don't know
+    return min_index, min_index
+  if (distance_to_prev > distance_to_next):
+    return min_index, next_index
+  else:
+    return min_index, prev_index
+
+
+def drop_outside_bounds(gpx, field):
+  # Drops gpx coordinates above max or below min (0)
+  gpx.drop(gpx[(gpx.Longitude > field.Longitude.max()) | (gpx.Longitude < 0)].index, inplace=True)
+  gpx.drop(gpx[(gpx.Latitude > field.Latitude.max()) | (gpx.Latitude < 0)].index, inplace=True)
+
+
+def scale_gpx(gpx, field):
+  """
+  Scales gpx coordinates according to ratio of regular field size to given field
+  regular field size: 105 x 68 meters
+  """
+  lon_scale = 105 / field.Longitude.max()
+  lat_scale = 68 / field.Latitude.max()
+  for index, row in gpx.iterrows():
+    gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * lat_scale
+    gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * lon_scale
+
+
+def align_to_positive(gpx, field, origin_index):
+  """
+  Makes field and gpx points positive if values are negative
+  """
+  prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
+  next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
+  # lat
+  origin_lat = field.at[origin_index, 'Latitude']
+  prev_lat = field.at[prev_index, 'Latitude']
+  next_lat = field.at[next_index, 'Latitude']
+  prev_length = prev_lat - origin_lat
+  next_length = next_lat - origin_lat
+  flip = False
+  if (abs(prev_length) > abs(next_length)):
+    if prev_length < 0: flip = True
+  else:
+    if next_length < 0: flip = True
+  if flip:
+    for index, row in gpx.iterrows():
+      gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * -1
+    for index, row in field.iterrows():
+      field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
+  # lon
+  origin_lon = field.at[origin_index, 'Longitude']
+  prev_lon = field.at[prev_index, 'Longitude']
+  next_lon = field.at[next_index, 'Longitude']
+  prev_length = prev_lon - origin_lon
+  next_length = next_lon - origin_lon
+  flip = False
+  if (abs(prev_length) > abs(next_length)):
+    if prev_length < 0: flip = True
+  else:
+    if next_length < 0: flip = True
+  if flip:
+    for index, row in gpx.iterrows():
+      gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
+    for index, row in field.iterrows():
+      field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1

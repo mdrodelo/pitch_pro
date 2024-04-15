@@ -23,7 +23,7 @@ class AppUserManager(BaseUserManager):
         if not password:
             raise ValueError('A password is required.')
         if not username:
-            raise ValueError('A username is required')
+            raise ValueError("A username is required")
         user = self.create_user(email, username, password)
         user.is_superuser = True
         user.save()
