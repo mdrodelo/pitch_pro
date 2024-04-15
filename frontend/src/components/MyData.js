@@ -302,6 +302,21 @@ function TheMap (props) {
 
     function SubmitGameData(e) {
         e.preventDefault();
+        
+        let missingFields = [];
+        if (!gameTitle) missingFields.push("Game Title");
+        if (!position) missingFields.push("Position");
+        if (!props.gpxfile) missingFields.push("GPX File");
+        if (!latLngs) missingFields.push("Field Polygon Drawing.");
+    
+        if (missingFields.length > 0) {
+            let alertMessage = "Missing or invalid fields: " + missingFields.join(", ");
+            if (!latLngs) {
+                alertMessage += "\nPlease use the polygon tool to draw the estimated field on the map.";
+            }
+            alert(alertMessage);
+            return;
+        }
 
         client.post(
             "/api/NewGame",
@@ -318,14 +333,16 @@ function TheMap (props) {
             client.post("/api/gamedata", { email: email })
                 .then(function(res) {
                     props.setData(res.data);
-                });
+                }); 
         });
+
+        
     
     }
 
     return (
         <div>
-            <Form onSubmit={e => SubmitGameData(e)}>
+            <Form onSubmit={e => { SubmitGameData(e); setGameTitle(''); setPosition(''); setLatLngs(null); }}>
                 <Form.Group className="mb-3" controlId="formGameTitle">
                     <Form.Label>Game Title</Form.Label>
                     <Form.Control placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
