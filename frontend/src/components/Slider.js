@@ -3,7 +3,7 @@ import React from 'react';
 import {Checkbox, RangeSlider, Row, Col, InputGroup, InputNumber } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
 import {useEffect, useState} from "react";
-
+// TODO make the sliders look nicer
 export default function Slider(props) {
     const [length, setLength] = useState(200);
     const [arr, setArr] = useState([]);
