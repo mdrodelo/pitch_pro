@@ -152,12 +152,17 @@ export default function MyData() {
     }
 
     function handleFileChange(e) {
-        let fileReader = new FileReader();
-        setFile(e.target.result);
-        fileReader.onload = function(e)  {
-            setFile(e.target.result);
+        if (e.target.files.length === 0) {
+            setFile(undefined);
         }
-        fileReader.readAsText(e.target.files[0], "UTF-8");
+        else {
+            let fileReader = new FileReader();
+            setFile(e.target.result);
+            fileReader.onload = function (e) {
+                setFile(e.target.result);
+            }
+            fileReader.readAsText(e.target.files[0], "UTF-8");
+        }
     }
 
     useEffect(() =>  {
@@ -287,9 +292,19 @@ function TheMap (props) {
     const [timeArray, setTimeArray] = useState([]);
     const [sliderList, setSliderList] = useState([]);
     const [sliderArr, setSliderArr] = useState([]);
+    const [sliderDisabled, setSliderDisabled] = useState(true);
 
-    function handleLatLngs(data) {
-        setLatLngs(data);
+    useEffect(() => {
+        if (props.gpxfile === undefined) {
+            setSliderDisabled(true);
+        }
+        else {
+            setSliderDisabled(false);
+        }
+    }, [props.gpxfile]);
+
+    function handleLatLngs(e) {
+        setLatLngs(e);
     }
 
     function handleGpxElem(e) {
@@ -351,6 +366,7 @@ function TheMap (props) {
     return (
         <div>
             <Form onSubmit={e => { SubmitGameData(e); setGameTitle(''); setPosition(''); setLatLngs(null); }}>
+
                 <Form.Group className="mb-3" controlId="formGameTitle">
                     <Form.Label>Game Title</Form.Label>
                     <Form.Control style={{ color: 'black' }} placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
@@ -364,12 +380,13 @@ function TheMap (props) {
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group> */}
-                <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
+
                 <br/><br/>
-                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick}>Add Slider</Button>
+                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick} disabled={sliderDisabled}>Add Slider</Button>
                 <div id="sliders" padding="10px">
                     {sliderList}
                 </div>
+                <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
