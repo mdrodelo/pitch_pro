@@ -9,15 +9,25 @@ export default function Slider(props) {
     const [arr, setArr] = useState([]);
     const [value, setValue] = useState([10, 50]);
     const [check, setCheck] = useState(false);
+
     function handleCheckbox(e) {
-        if (e.target.checked) setCheck(true);
-        else setCheck(false);
+        // I can't figure this out.
+        // The checkbox isn't accurate on first go (on first check s/b true, but is false)
+        // but works fine on every click after. WTF??
+        setCheck(!e);
         handleUpdate();
     }
+
     //const handleCheckbox = (value) => setCheck(checked); handleUpdate();
     function handleUpdate() {
         props.updateSliderArr([props.index, value[0], value[1], check]);
         //console.log(props.index, value[0], value[1], check);
+    }
+
+    function getTime(value) {
+        if (arr.length == 0)
+            return "NaN";
+        return arr[value].slice(arr[value].indexOf("T") + 1);
     }
     useEffect(() => {
         if (props.gpxElement != null){
@@ -29,17 +39,16 @@ export default function Slider(props) {
             }
             setArr(gpxArr);
         }
-        //console.log(props.gpxElement);
     }, [props.gpxElement]);
 
     // https://rsuitejs.com/guide/usage/
     // RangeSlider, InputNumber
     return (
-        <div id={props.key}>
+        <div id={props.index}>
     <Row>
         <Col><Checkbox
             onChange={(value, checked, event) => {
-                handleCheckbox(event);
+                handleCheckbox(checked);
             }}
         /></Col>
       <Col md={10} xs={12}>
@@ -71,6 +80,7 @@ export default function Slider(props) {
               setValue([nextValue, end]);
               handleUpdate();
             }}
+            formatter={getTime}
           />
           <InputGroup.Addon>to</InputGroup.Addon>
           <InputNumber
@@ -85,16 +95,13 @@ export default function Slider(props) {
               setValue([start, nextValue]);
               handleUpdate();
             }}
+            formatter={getTime}
           />
         </InputGroup>
               </Row>
 
       </Col>
     </Row>
-        <Row>
-              <Col id="start-time">{arr[value[0]]}</Col>
-              <Col id="end-time">{arr[value[1]]}</Col>
-          </Row>
-            </div>
+        </div>
     );
 }

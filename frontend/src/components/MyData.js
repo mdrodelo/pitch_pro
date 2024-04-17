@@ -291,16 +291,11 @@ function TheMap (props) {
     const [gpxElem, setGpxElem] = useState(null);
     const [timeArray, setTimeArray] = useState([]);
     const [sliderList, setSliderList] = useState([]);
-    const [sliderArr, setSliderArr] = useState([]);
+    const [sliderArr, setSliderArr] = useState({});
     const [sliderDisabled, setSliderDisabled] = useState(true);
 
     useEffect(() => {
-        if (props.gpxfile === undefined) {
-            setSliderDisabled(true);
-        }
-        else {
-            setSliderDisabled(false);
-        }
+        onClearSlidersClick();
     }, [props.gpxfile]);
 
     function handleLatLngs(e) {
@@ -315,11 +310,18 @@ function TheMap (props) {
         sliderArr[e[0]] = [e[1], e[2], e[3]];
     }
 
+    const onClearSlidersClick = event => {
+        setSliderList([]);
+        setSliderArr({});
+    }
+
     const onSliderBtnClick = event => {
-        sliderArr.push([-1, 1, 0]);
         //https://codesandbox.io/p/sandbox/add-react-component-onclick-oery4?file=%2Fsrc%2Findex.js%3A14%2C1
         setSliderList(sliderList.concat(<Slider key={sliderList.length} index={sliderList.length} gpxElement={gpxElem} updateSliderArr={handleSliderArrUpdate}/>));
-        console.log(sliderList.length);
+        if (sliderList.length >= 1)
+            sliderArr[sliderList.length] = [-1, 1, sliderArr[sliderList.length - 1][2] ? false : true];
+        else
+            sliderArr[sliderList.length] = [-1, 1, false];
     };
 
     function SubmitGameData(e) {
@@ -358,9 +360,6 @@ function TheMap (props) {
                     props.setData(res.data);
                 }); 
         });
-
-        
-    
     }
 
     return (
@@ -380,12 +379,14 @@ function TheMap (props) {
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group> */}
+                <br/>
+                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick} disabled={props.gpxfile === undefined ? true : false}>Add Slider</Button>
+                <Button style={{ color: 'black' }} type="button" onClick={onClearSlidersClick} disabled={props.gpxfile === undefined ? true : false}>Clear *ALL* Sliders</Button>
 
-                <br/><br/>
-                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick} disabled={sliderDisabled}>Add Slider</Button>
                 <div id="sliders" padding="10px">
                     {sliderList}
                 </div>
+                <br/>
                 <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
