@@ -239,9 +239,7 @@ function AddGpx(props) {
             }
         }).on('loaded', function (e) {
             map.fitBounds(e.target.getBounds());
-            //console.log(e); // TODO set value for context here?
             //console.log(e.element.children[0].children[1].children[1].children)
-            //setGpxElem(e);
             props.sendGpxElem(e.element.children[0].children[1].children[1].children);
 
         }).addTo(map);
@@ -277,6 +275,8 @@ function DrawControls({sendLatLngs}) {
 
     map.on(L.Draw.Event.CREATED, function(e) {
         let layer = e.layer;
+        layer.options.color = '#D41159';
+        layer.options.fillColor = '#D41159';
         drawnItems.addLayer(layer);
         map.addLayer(layer);
         sendLatLngs(layer.getLatLngs());
@@ -307,7 +307,8 @@ function TheMap (props) {
     }
 
     function handleSliderArrUpdate(e) {
-        sliderArr[e[0]] = [e[1], e[2], e[3]];
+        let check = sliderArr[e[0]][2];
+        sliderArr[e[0]] = [e[1], e[2], check];
     }
 
     const onClearSlidersClick = event => {
@@ -326,7 +327,7 @@ function TheMap (props) {
 
     function SubmitGameData(e) {
         e.preventDefault();
-        
+
         let missingFields = [];
         if (!gameTitle) missingFields.push("Game Title");
         if (!position) missingFields.push("Position");
