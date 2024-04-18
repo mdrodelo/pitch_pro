@@ -81,15 +81,39 @@ const Img = styled.img`
     max-height: 500px;
 `;
 
+// const StyledTable = styled.table`
+//     width: 100%;
+//     border-collapse: collapse;
+//     color: #f7f8fa;
+// `;
+
+// const StyledTh = styled.th`
+//     border: 1px solid #ddd;
+//     padding: 8px;
+//     text-align: left;
+//     background-color: #4CAF50;
+//     color: white;
+// `;
+
+// const StyledTd = styled.td`
+//     border: 1px solid #ddd;
+//     padding: 8px;
+//     color: white;
+// `;
+
 const StyledTable = styled.table`
-    width: 100%;
+    width: 800px;  // Adjust width as needed
+    margin: 0 auto; // Center table on the page
     border-collapse: collapse;
+    border-spacing: 0 1em;
     color: #f7f8fa;
+    font-size: 1rem;
+    table-layout: fixed; // Use this to keep columns fixed
 `;
 
 const StyledTh = styled.th`
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px;
     text-align: left;
     background-color: #4CAF50;
     color: white;
@@ -97,8 +121,9 @@ const StyledTh = styled.th`
 
 const StyledTd = styled.td`
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px;
     color: white;
+    word-wrap: break-word; // Prevents text from overflowing
 `;
 
 const AddDataDiv = styled.div`
@@ -152,11 +177,9 @@ export default function MyData() {
     }
 
     function handleFileChange(e) {
-        if (e.target.files.length === 0) {
-            setFile(undefined);
-        }
-        else {
-            let fileReader = new FileReader();
+        let fileReader = new FileReader();
+        setFile(e.target.result);
+        fileReader.onload = function (e) {
             setFile(e.target.result);
             fileReader.onload = function (e) {
                 setFile(e.target.result);
@@ -165,60 +188,70 @@ export default function MyData() {
         }
     }
 
-    useEffect(() =>  {
+    useEffect(() => {
         client.post("/api/gamedata",
-        {
-            email: email
-        })
-        .then(function(res) {
-            setData(res.data);
-            //data = res.data;
-        });
+            {
+                email: email
+            })
+            .then(function (res) {
+                setData(res.data);
+                //data = res.data;
+            });
     }, []);
 
     return (
         <div>
             <HomeContainer>
                 <SectionContainer>
-                    <GameLogSection>
+                    <NewGameSection id="add-data-section">
+                        <AddDataDiv>Add data</AddDataDiv>
+                        <StyledInput type="file" accept='.gpx' onChange={handleFileChange} />
+                        <TheMap gpxfile={file} thisEmail={email} setData={setData} />
+                    </NewGameSection>
+                </SectionContainer>
+            </HomeContainer>
+            <HomeContainer>
+                <SectionContainer>
+                    <GameLogSection id="my-data-section">
                         <Column1>
-                        <TextContent>
-                            <StyledTable>
-                                <tr>
-                                    <StyledTh>Title</StyledTh>
-                                    <StyledTh>Date</StyledTh>
-                                    <StyledTh></StyledTh>
-                                </tr>
-                                {data.map((val, key) => {
-                                    return (
-                                        <tr id={val.game_id}>
-                                            <StyledTd>{val.game_title}</StyledTd>
-                                            <StyledTd>{val.game_date}</StyledTd>
-                                            <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
+                            <TextContent>
+                                <StyledTable>
+                                    <thead>
+                                        <tr>
+                                            <StyledTh>Title</StyledTh>
+                                            <StyledTh>Date</StyledTh>
+                                            <StyledTh>Position</StyledTh>
+                                            <StyledTh>Duration</StyledTh>
+                                            <StyledTh>View</StyledTh>
+                                            <StyledTh>Delete</StyledTh>
                                         </tr>
-                                    )
-                                })}
-                            </StyledTable>
-                        </TextContent>
+                                    </thead>
+                                    <tbody>
+                                        {data.map((val, key) => {
+                                            return (
+                                                <tr key={val.game_id}>
+                                                    <StyledTd>{val.game_title}</StyledTd>
+                                                    <StyledTd>{val.game_date}</StyledTd>
+                                                    <StyledTd>{val.position}</StyledTd>
+                                                    <StyledTd>{val.duration}</StyledTd>
+                                                    <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
+                                                    <StyledTd><StyledButton>Delete</StyledButton></StyledTd>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </StyledTable>
+                            </TextContent>
                         </Column1>
                         <Column2>
                             <ImgContainer>
-                                <Heatmap id={gameId}/>
+                                <Heatmap id={gameId} />
                             </ImgContainer>
                         </Column2>
                     </GameLogSection>
                 </SectionContainer>
             </HomeContainer>
-            <HomeContainer>
-                <SectionContainer>
-                    <NewGameSection>  
-                        <AddDataDiv>Add data</AddDataDiv>
-                        <StyledInput type="file" accept='.gpx' onChange={handleFileChange}/>
-                        <TheMap gpxfile={file} thisEmail={email} setData={setData}/>
-                    </NewGameSection>
-                </SectionContainer>
-            </HomeContainer> 
-        </div>                        
+        </div>
     );
 }
 
@@ -248,7 +281,7 @@ function AddGpx(props) {
     }, [props.gpxfile]);
 }
 
-function DrawControls({sendLatLngs}) {
+function DrawControls({ sendLatLngs }) {
     const map = useMap();
     if (drawLayers) return;
     else drawLayers = true;
@@ -275,7 +308,7 @@ function DrawControls({sendLatLngs}) {
         drawnItems = new L.FeatureGroup();
     });
 
-    map.on(L.Draw.Event.CREATED, function(e) {
+    map.on(L.Draw.Event.CREATED, function (e) {
         let layer = e.layer;
         drawnItems.addLayer(layer);
         map.addLayer(layer);
@@ -283,7 +316,7 @@ function DrawControls({sendLatLngs}) {
     });
 }
 
-function TheMap (props) {
+function TheMap(props) {
     const { email } = useContext(EmailContext);
     const [gameTitle, setGameTitle] = useState('');
     const [position, setPosition] = useState('');
@@ -318,19 +351,19 @@ function TheMap (props) {
     const onSliderBtnClick = event => {
         sliderArr.push([-1, 1, 0]);
         //https://codesandbox.io/p/sandbox/add-react-component-onclick-oery4?file=%2Fsrc%2Findex.js%3A14%2C1
-        setSliderList(sliderList.concat(<Slider key={sliderList.length} index={sliderList.length} gpxElement={gpxElem} updateSliderArr={handleSliderArrUpdate}/>));
+        setSliderList(sliderList.concat(<Slider key={sliderList.length} index={sliderList.length} gpxElement={gpxElem} updateSliderArr={handleSliderArrUpdate} />));
         console.log(sliderList.length);
     };
 
     function SubmitGameData(e) {
         e.preventDefault();
-        
+
         let missingFields = [];
         if (!gameTitle) missingFields.push("Game Title");
         if (!position) missingFields.push("Position");
         if (!props.gpxfile) missingFields.push("GPX File");
         if (!latLngs) missingFields.push("Field Polygon Drawing.");
-    
+
         if (missingFields.length > 0) {
             let alertMessage = "Missing or invalid fields: " + missingFields.join(", ");
             if (!latLngs) {
@@ -350,17 +383,17 @@ function TheMap (props) {
                 field: latLngs,
                 events: sliderArr
             }
-        ).then(function(res) {
+        ).then(function (res) {
             console.log("Successful POST. Reload gamedata table");
             // After successfully posting new game data, fetch the updated data
             client.post("/api/gamedata", { email: email })
-                .then(function(res) {
+                .then(function (res) {
                     props.setData(res.data);
-                }); 
+                });
         });
 
-        
-    
+
+
     }
 
     return (
@@ -380,9 +413,9 @@ function TheMap (props) {
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group> */}
-
-                <br/><br/>
-                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick} disabled={sliderDisabled}>Add Slider</Button>
+                <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
+                <br /><br />
+                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick}>Add Slider</Button>
                 <div id="sliders" padding="10px">
                     {sliderList}
                 </div>
@@ -390,9 +423,9 @@ function TheMap (props) {
                 <div id="map" padding={"10px"}>
                     <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                        <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem}/>
-                        <DrawControls sendLatLngs={handleLatLngs}/>
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem} />
+                        <DrawControls sendLatLngs={handleLatLngs} />
                     </MapContainer>
                 </div>
             </Form>
