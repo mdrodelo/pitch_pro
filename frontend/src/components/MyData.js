@@ -177,9 +177,12 @@ export default function MyData() {
     }
 
     function handleFileChange(e) {
-        let fileReader = new FileReader();
-        setFile(e.target.result);
-        fileReader.onload = function (e) {
+        console.log(e)
+        if (e.target.files.length === 0) {
+            setFile(undefined);
+        }
+        else {
+            let fileReader = new FileReader();
             setFile(e.target.result);
             fileReader.onload = function (e) {
                 setFile(e.target.result);
@@ -272,6 +275,7 @@ function AddGpx(props) {
             }
         }).on('loaded', function (e) {
             map.fitBounds(e.target.getBounds());
+            console.log(e);
             //console.log(e.element.children[0].children[1].children[1].children)
             props.sendGpxElem(e.element.children[0].children[1].children[1].children);
 
@@ -325,7 +329,6 @@ function TheMap(props) {
     const [timeArray, setTimeArray] = useState([]);
     const [sliderList, setSliderList] = useState([]);
     const [sliderArr, setSliderArr] = useState({});
-    const [sliderDisabled, setSliderDisabled] = useState(true);
 
     useEffect(() => {
         onClearSlidersClick();
