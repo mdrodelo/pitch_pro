@@ -8,6 +8,7 @@ pip3 install gpxpy
 import io
 
 import utm as utm
+import matplotlib.pyplot as plt
 import os
 import gpxpy
 import gpxpy.gpx
@@ -15,9 +16,9 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import sys
 import math
-from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
 import base64
-
+from scipy.ndimage import gaussian_filter
+from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
 
 def parse_gpx(gpxFile, events=[]):
     gpx = gpxpy.parse(gpxFile)
@@ -107,9 +108,22 @@ def draw_heatmap(gpx_df, field):
     align_to_positive(gpx_df, field_df, corner0_index)
     drop_outside_bounds(gpx_df, field_df)
     scale_gpx(gpx_df, field_df)
-    pitch = Pitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
-    fig, ax = pitch.draw()
+    pitch = VerticalPitch(pitch_type='statsbomb', line_zorder=2,
+                          pitch_color='#22312b', line_color='#efefef')
+    fig, ax = pitch.draw(figsize=(8,12))
+    fig.set_facecolor('#22312b')
+    bin_statistic = pitch.bin_statistic(gpx_df.Longitude, gpx_df.Latitude,
+                                        statistic='count', bins=(50,35))
+    bin_statistic['statistic'] = gaussian_filter(bin_statistic['statistic'], 1)
+    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')#, edgecolors='#223212b')
+    cbar = fig.colorbar(pcm, ax=ax, shrink=0.5)
+    cbar.ax.yaxis.set_tick_params(color='#efefef', labelsize=15)
+    ticks = plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='#efefef')
+    """ OG Vertical Pitch
+    pitch = VerticalPitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
+    fig, ax = pitch.draw(figsize=(8, 12))
     kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
+    """
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
@@ -118,6 +132,32 @@ def draw_heatmap(gpx_df, field):
     res = res.decode('utf-8')
     data = "data:image/jpeg;base64," + res
     return data
+
+
+def draw_heatmap_by_halves(gpx_df, field):
+    heatmaps_list = []
+    temp_list = []
+    start_side = None
+    for index, row in gpx_df.iterrows():
+        this_side = gpx_df.at[index, 'Side']
+        if start_side is None:
+            start_side = this_side
+        if start_side != this_side:
+            temp_df = pd.DataFrame(temp_list)
+            heatmaps_list.append(draw_heatmap(temp_df, field))
+            temp_list.clear()
+            start_side = this_side
+        temp_dict = {
+            'Side': gpx_df.at[index, 'Side'],
+            'Latitude': gpx_df.at[index, 'Latitude'],
+            'Longitude': gpx_df.at[index, 'Longitude'],
+            'Heart Rate': gpx_df.at[index, 'Heart Rate'],
+        }
+        temp_list.append(temp_dict)
+    temp_df = pd.DataFrame(temp_list)
+    heatmaps_list.append(draw_heatmap(temp_df, field))
+    return heatmaps_list
+
 
 def parse_field_params(field):
     parsed = field.split(" ")
