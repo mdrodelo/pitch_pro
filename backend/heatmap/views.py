@@ -22,6 +22,21 @@ import io
 import matplotlib
 matplotlib.use('Agg')
 
+
+class HeatmapsByHalves(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        game_id = request.data['game_id']
+        query = str(PlayerMovement.objects.all().filter(game_id=game_id).query)
+        df = pd.read_sql_query(query, connection)
+        game_res = GameData.objects.get(game_id=game_id)
+        game_data = SingleGameDataSerializer(game_res) # contains game title, date, position
+        field = game_data.data.get('field_parameters')
+        heatmaps = GPXFunctions.draw_draw_heatmap_by_halves(df, field)
+        return Response({'heatmaps': heatmaps}, status=status.HTTP_200_OK)
+
+
 class Heatmap(APIView):
     permission_classes = (permissions.AllowAny,)
 
@@ -36,24 +51,6 @@ class Heatmap(APIView):
         heatmap = GPXFunctions.draw_heatmap(df, field)
         return Response({'heatmap': heatmap}, status=status.HTTP_200_OK)
 
-        """
-        Leaving for reference
-        parser = Sbopen()
-        df_false9 = parser.event(69249)[0]
-        df_false9 = df_false9.loc[df_false9.player_id == 5503, ['x', 'y']]
-        test_pitch = Pitch(line_color='black', line_zorder=2)
-        test_fig, testax = test_pitch.draw(figsize=(10, 5))
-        kde = test_pitch.kdeplot(df_false9.x, df_false9.y, ax=testax, fill=True)
-        buf = io.BytesIO()
-        test_fig.savefig(buf, format='png')
-        buf.seek(0)
-        heatmap = buf.read() # This is where the function returned in PitchPro main file
-        # start of original view file
-        res = base64.b64encode(heatmap)
-        res = res.decode('utf-8')
-        data = "data:image/jpeg;base64," + res
-        return Response({'heatmap': data}, status=status.HTTP_200_OK)
-        """
 
 class AllGameData(APIView):
     #permission_classes = (permissions.IsAuthenticated,)
@@ -87,9 +84,10 @@ class NewGameData(APIView):
         #return Response(status=status.HTTP_200_OK) # TODO REMOVE ONCE parsing events array in parse_gpx is implemented
         gd = GameData.objects.create(
             game_title=title,
-            field_parameters=field_params,
             game_date=date,
-            user_id=AppUser.objects.get(email=email)
+            field_parameters=field_params,
+            user_id=AppUser.objects.get(email=email),
+            position=position,
         )
         player_movements = [
             PlayerMovement(

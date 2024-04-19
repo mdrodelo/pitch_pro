@@ -133,6 +133,32 @@ def draw_heatmap(gpx_df, field):
     data = "data:image/jpeg;base64," + res
     return data
 
+
+def draw_heatmap_by_halves(gpx_df, field):
+    heatmaps_list = []
+    temp_list = []
+    start_side = None
+    for index, row in gpx_df.iterrows():
+        this_side = gpx_df.at[index, 'Side']
+        if start_side is None:
+            start_side = this_side
+        if start_side != this_side:
+            temp_df = pd.DataFrame(temp_list)
+            heatmaps_list.append(draw_heatmap(temp_df, field))
+            temp_list.clear()
+            start_side = this_side
+        temp_dict = {
+            'Side': gpx_df.at[index, 'Side'],
+            'Latitude': gpx_df.at[index, 'Latitude'],
+            'Longitude': gpx_df.at[index, 'Longitude'],
+            'Heart Rate': gpx_df.at[index, 'Heart Rate'],
+        }
+        temp_list.append(temp_dict)
+    temp_df = pd.DataFrame(temp_list)
+    heatmaps_list.append(draw_heatmap(temp_df, field))
+    return heatmaps_list
+
+
 def parse_field_params(field):
     parsed = field.split(" ")
     field_params = []

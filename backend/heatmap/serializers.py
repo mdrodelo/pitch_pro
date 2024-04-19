@@ -35,4 +35,4 @@ class SingleGameDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = GameData
         #fields = '__all__'
-        exclude = ['user_id', 'game_id', 'game_title', 'game_date']
+        exclude = ['user_id', 'game_id',]
