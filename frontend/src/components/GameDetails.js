@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { LineGraph } from './Line'
 import client from "./api";
+import { EmailContext } from '../App';
 
 const DetailsContainer = styled.div`
     color: #fff;
@@ -14,6 +15,7 @@ const DetailsContainer = styled.div`
     display: flex; // Use flexbox
     flex-direction: column; // Stack children vertically
     align-items: center; // Center children horizontally
+    overflow: auto; // Add this line to prevent overflow
 `;
 
 const Title = styled.h1`
@@ -42,13 +44,15 @@ const Position = styled.h2`
 const MidSection = styled.div`
     display: flex;
     flex-direction: column;
+    align-items: center; // Center children horizontally
     width: 100%;
     height: 100%;
 `;
 
 const Image = styled.img`
-    max-width: 100%;
-    height: 100%;
+    margin-top: 10px;
+    width: 80%;
+    height: 80%;
 `;
 
 const ButtonToggle = styled.button`
@@ -78,11 +82,19 @@ const ButtonContainer = styled.div`
     justify-content: space-between;
 `;
 
+const StyledLineGraph = styled(LineGraph)`
+    max-width: 80%;
+    max-height: 80%;
+`;
+
 export default function GameDetails() {
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState('HeatMap');
+    const { email } = useContext(EmailContext);
+    const [data, setData] = useState([]);
     const [image, setImage] = useState('');
     let location = useLocation();
     let gameId = location.state && location.state.gameId;
+    const [game, setGame] = useState(null);
 
     client.post("api/heatmap", {
         game_id: gameId
@@ -90,11 +102,51 @@ export default function GameDetails() {
         setImage(res.data['heatmap']);
     });
 
+    useEffect(() => {
+        client.post("/api/gamedata",
+            {
+                email: email
+            })
+            .then(function (res) {
+                console.log(res.data);
+                setData(res.data);
+                //Find the game with the given gameId
+                const game = res.data.find(game => game.game_id === gameId);
+                setGame(game);
+            });
+    }, []);
+
+    const VitalStatsTable = () => (
+        <table style={{ marginTop: '10px' }}>
+            <tr>
+                <th>Total Distance Traveled</th>
+                <td>{game ? 'game.total_distance' : 'Loading...'}</td>
+            </tr>
+            <tr>
+                <th>Average Heart Rate</th>
+                <td>{game ? 'game.avg_heart_rate' : 'Loading...'}</td>
+            </tr>
+            <tr>
+                <th>Max Heart Rate</th>
+                <td>{game ? 'game.max_heart_rate' : 'Loading...'}</td>
+            </tr>
+            <tr>
+                <th>Calories Burned</th>
+                <td>{game ? 'game.calories_burned' : 'Loading...'}</td>
+            </tr>
+            <tr>
+                <th>Top Speed</th>
+                <td>{game ? 'game.top_speed' : 'Loading...'}</td>
+            </tr>
+        </table>
+    );
+
+
     return (
         <DetailsContainer>
-            <Title>Sunday League MatchDay #1</Title>
-            <Date>4/14/2024</Date>
-            <Position>Striker</Position>
+            <Title>{game ? game.game_title : 'Loading...'}</Title>
+            <Date>{game ? game.game_date : 'Loading...'}</Date>
+            <Position>{game ? game.position : 'Loading...'}</Position>
             <ButtonContainer>
                 <ButtonToggle
                     slected={selected === 'HeartRate'}
@@ -116,11 +168,10 @@ export default function GameDetails() {
                 </ButtonToggle>
             </ButtonContainer>
             <MidSection>
-                {selected === 'HeartRate' && <LineGraph id="LineGraph1" />}
+                {selected === 'HeartRate' && <StyledLineGraph id="LineGraph1" />}
                 {selected === 'HeatMap' && <Image src={image} alt='all' />}
-                {selected === 'VitalStats' && <LineGraph id="LineGraph2" />}
+                {selected === 'VitalStats' && <VitalStatsTable />}
             </MidSection>
         </DetailsContainer>
-       
     );
 }

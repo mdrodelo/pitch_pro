@@ -36,7 +36,7 @@ const SectionContainer = styled.div`
 
 const GameLogSection = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     grid-auto-columns: minmax(auto, 1fr);
     align-items: center;
     grid-template-areas: 'col1 col2';
