@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework import permissions, status
-from .serializers import GameDataSerializer, AllGameDataSerializer, HeatMapSerializer, SingleGameDataSerializer
+from .serializers import GameDataSerializer, AllGameDataSerializer, HeatMapSerializer, SingleGameDataSerializer, HeartRateSerializer
 from rest_framework.response import Response
 import base64
 import heatmap.data as GPXFunctions
@@ -63,6 +63,24 @@ class AllGameData(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class SingleGameData(APIView):
+    authentication_classes = (SessionAuthentication,)
+
+    def post(self, request):
+        game_id = request.data['game_id']
+        query = str(PlayerMovement.objects.filter(game_id=game_id).query)
+        df = pd.read_sql_query(query, connection)
+        heart_rate = GPXFunctions.heartrate_by_min(df)
+        game_res = GameData.objects.get(game_id=game_id)
+        game_data = SingleGameDataSerializer(game_res)
+        title = game_data.data.get('game_title')
+        position = game_data.data.get('position')
+        date = game_data.data.get('game_date')
+        return Response(
+            {'title': title, 'position': position, 'date': date, 'heart_rate': heart_rate},
+            status=status.HTTP_200_OK)
+
+
 class NewGameData(APIView):
     authentication_classes = (SessionAuthentication,)
     #permission_classes = (permissions.IsAuthenticated,)
@@ -73,6 +91,7 @@ class NewGameData(APIView):
         title = request.data['title']
         email = request.data['email']
         position = request.data['position'] # TODO add position to Gamedata table
+        #print(gpx_data)
         date = gpx_data.at[0, 'SessionDate']
         field = request.data['field'][0]
         field_params = ""

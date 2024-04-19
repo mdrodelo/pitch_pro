@@ -6,4 +6,5 @@ urlpatterns = [
     path('NewGame', views.NewGameData.as_view(), name='newgame'),
     path('gamedata', views.AllGameData.as_view(), name='allgames'),
     path('HeatmapsByHalves', views.HeatmapsByHalves.as_view(), name='heatmapsbyhalves'),
+    path('SingleGameData',views.SingleGameData.as_view(), name='singlegamedata'),
 ]

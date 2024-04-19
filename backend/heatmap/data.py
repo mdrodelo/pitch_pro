@@ -14,6 +14,7 @@ import gpxpy
 import gpxpy.gpx
 import xml.etree.ElementTree as ET
 import pandas as pd
+import numpy as np
 import sys
 import math
 import base64
@@ -332,3 +333,8 @@ def align_to_positive(gpx, field, origin_index):
       gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
     for index, row in field.iterrows():
       field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+
+
+def heartrate_by_min(df):
+    heartrate_df = df['heart_rate']
+    return heartrate_df.groupby(np.arange(len(df)) // 60).mean()
