@@ -26,12 +26,11 @@ def parse_gpx(gpxFile, events=[]):
     total_distance = None
     average_speed = None
     events_length = len(events)
+    if events_length == 0:
+        events['0'] = [-1, sys.maxsize, False]
     e_index = 0
-    play_start = sys.maxsize - 1
-    play_end = sys.maxsize
-    if events_length > 0:
-        play_start = events[e_index][0]
-        play_end = events[e_index][1]
+    play_start = events[str(e_index)][0]
+    play_end = events[str(e_index)][1]
     point_count = 0
     for track in gpx.tracks:
         for segment in track.segments:
@@ -42,8 +41,8 @@ def parse_gpx(gpxFile, events=[]):
                         play_start = sys.maxsize - 1
                         play_end = sys.maxsize
                     else:
-                        play_start = events[e_index][0]
-                        play_end = events[e_index][1]
+                        play_start = events[str(e_index)][0]
+                        play_end = events[str(e_index)][1]
                 if point_count < play_start:
                     point_count += 1
                     continue
@@ -53,7 +52,7 @@ def parse_gpx(gpxFile, events=[]):
                     'Timestamp': point.time.strftime('%H:%M:%S'),
                     'Latitude': point.latitude,
                     'Longitude': point.longitude,
-                    'Side': events[e_index][2]
+                    'Side': events[str(e_index)][2]
                 }
                 extension_data = parse_extensions(point.extensions)
                 for key, value in extension_data.items():
