@@ -248,7 +248,7 @@ export default function MyData() {
                         </Column1>
                         <Column2>
                             <ImgContainer>
-                                <Heatmap id={gameId} />
+                                <Heatmap id={gameId}/>
                             </ImgContainer>
                         </Column2>
                     </GameLogSection>
@@ -285,24 +285,8 @@ function AddGpx(props) {
 
 function DrawControls({ sendLatLngs }) {
     const map = useMap();
-    if (drawLayers) return;
-    else drawLayers = true;
-
     var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-    var drawControl = new L.Control.Draw({
-        draw: {
-            polyline: false,
-            rectangle: false,
-            circle: false,
-            marker: false,
-            circlemarker: false
-        },
-        edit: {
-            featureGroup: drawnItems
-        }
-    });
-    map.addControl(drawControl);
+
     map.on(L.Draw.Event.DRAWSTART, function () {
         drawnItems.eachLayer(function (layer) {
             map.removeLayer(layer);
@@ -426,7 +410,7 @@ function TheMap(props) {
                 <br/>
                 <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
                 <div id="map" padding={"10px"}>
-                    <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
+                    <MapContainer drawControl={true} center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem} />
