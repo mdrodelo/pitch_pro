@@ -18,6 +18,11 @@ export default function Slider(props) {
     function getTime(value) {
         if (arr.length === 0)
             return "NaN";
+
+        if (value >= arr.length){
+          return "NaN";
+        }
+        
         return arr[value].slice(arr[value].indexOf("T") + 1);
     }
     useEffect(() => {

@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework import permissions, status
-from .serializers import GameDataSerializer, AllGameDataSerializer, HeatMapSerializer, SingleGameDataSerializer
+from .serializers import GameDataSerializer, AllGameDataSerializer, HeatMapSerializer, SingleGameDataSerializer, HeartRateSerializer
 from rest_framework.response import Response
 import base64
 import heatmap.data as GPXFunctions
@@ -33,7 +33,7 @@ class HeatmapsByHalves(APIView):
         game_res = GameData.objects.get(game_id=game_id)
         game_data = SingleGameDataSerializer(game_res) # contains game title, date, position
         field = game_data.data.get('field_parameters')
-        heatmaps = GPXFunctions.draw_draw_heatmap_by_halves(df, field)
+        heatmaps = GPXFunctions.draw_heatmap_by_halves(df, field)
         return Response({'heatmaps': heatmaps}, status=status.HTTP_200_OK)
 
 
@@ -63,16 +63,37 @@ class AllGameData(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class SingleGameData(APIView):
+    authentication_classes = (SessionAuthentication,)
+
+    def post(self, request):
+        game_id = request.data['game_id']
+        query = str(PlayerMovement.objects.filter(game_id=game_id).query)
+        df = pd.read_sql_query(query, connection)
+        heart_rate = GPXFunctions.heartrate_by_min(df)
+        game_res = GameData.objects.get(game_id=game_id)
+        game_data = SingleGameDataSerializer(game_res)
+        title = game_data.data.get('game_title')
+        position = game_data.data.get('position')
+        date = game_data.data.get('game_date')
+        avg_speed = game_data.data.get('avg_speed')
+        total_distance = game_data.data.get('total_distance')
+        return Response(
+            {'title': title, 'position': position, 'date': date, 'avg_speed': avg_speed, 'total_distance':total_distance, 'heart_rate': heart_rate},
+            status=status.HTTP_200_OK)
+
+
 class NewGameData(APIView):
     authentication_classes = (SessionAuthentication,)
     #permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
         events = request.data['events']
-        gpx_data = GPXFunctions.parse_gpx(request.data['gpx'], events)
+        avg_speed, total_distance, gpx_data = GPXFunctions.parse_gpx(request.data['gpx'], events)
         title = request.data['title']
         email = request.data['email']
         position = request.data['position'] # TODO add position to Gamedata table
+        #print(gpx_data)
         date = gpx_data.at[0, 'SessionDate']
         field = request.data['field'][0]
         field_params = ""
@@ -88,6 +109,8 @@ class NewGameData(APIView):
             field_parameters=field_params,
             user_id=AppUser.objects.get(email=email),
             position=position,
+            avg_speed=avg_speed,
+            total_distance=total_distance
         )
         player_movements = [
             PlayerMovement(

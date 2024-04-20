@@ -20,21 +20,14 @@ ChartJS.register(
     Legend
 );
 
-export const LineGraph = () => {
+export const LineGraph = ({ heartRateData }) => {
 
     const data = {
-        labels: Array.from({length: 91}, (_, i) => i), // Minutes from 0 to 90
+        labels: heartRateData ? Array.from({length: heartRateData.length}, (_, i) => i) : [], // Minutes from 0 to 90
         datasets: [
             {
-                label: 'Player Speed',
-                data: Array.from({length: 91}, () => Math.floor(Math.random() * 40)), // Random speed data
-                fill: false,
-                backgroundColor: 'rgb(255, 99, 132)',
-                borderColor: 'rgba(255, 99, 132, 0.2)',
-            },
-            {
                 label: 'Heart Rate',
-                data: Array.from({length: 91}, () => Math.floor(Math.random() * 180) + 60), // Random heart rate data
+                data: heartRateData || [], 
                 fill: false,
                 backgroundColor: 'rgb(75, 192, 192)',
                 borderColor: 'rgba(75, 192, 192, 0.2)',
@@ -44,6 +37,8 @@ export const LineGraph = () => {
     
     const options = {
         responsive: true,
+        width: '70%',
+        height: '70%',
         maintainAspectRatio: false,
         scales: {
             x: {
@@ -68,7 +63,7 @@ export const LineGraph = () => {
                 beginAtZero: true,
                 title: {
                     display: true,
-                    text: 'Speed (km/h)',
+                    text: 'Heart-Rate (bpm)',
                     font: {
                         size: 20, // Adjust as needed
                         weight: 'bold', // Make the text bold
@@ -87,7 +82,7 @@ export const LineGraph = () => {
         plugins: {
             title: {
                 display: true,
-                text: 'Player Speed throughout Match',
+                text: 'Player HeartRate throughout Match',
                 font: {
                     size: 24, // Adjust as needed
                     weight: 'bold', // Make the text bold
