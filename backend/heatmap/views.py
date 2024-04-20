@@ -33,7 +33,7 @@ class HeatmapsByHalves(APIView):
         game_res = GameData.objects.get(game_id=game_id)
         game_data = SingleGameDataSerializer(game_res) # contains game title, date, position
         field = game_data.data.get('field_parameters')
-        heatmaps = GPXFunctions.draw_draw_heatmap_by_halves(df, field)
+        heatmaps = GPXFunctions.draw_heatmap_by_halves(df, field)
         return Response({'heatmaps': heatmaps}, status=status.HTTP_200_OK)
 
 

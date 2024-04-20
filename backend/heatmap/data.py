@@ -135,11 +135,12 @@ def draw_heatmap(gpx_df, field):
 
 
 def draw_heatmap_by_halves(gpx_df, field):
+    print(gpx_df)
     heatmaps_list = []
     temp_list = []
     start_side = None
     for index, row in gpx_df.iterrows():
-        this_side = gpx_df.at[index, 'Side']
+        this_side = gpx_df.at[index, 'switch_sides']
         if start_side is None:
             start_side = this_side
         if start_side != this_side:
@@ -148,10 +149,10 @@ def draw_heatmap_by_halves(gpx_df, field):
             temp_list.clear()
             start_side = this_side
         temp_dict = {
-            'Side': gpx_df.at[index, 'Side'],
-            'Latitude': gpx_df.at[index, 'Latitude'],
-            'Longitude': gpx_df.at[index, 'Longitude'],
-            'Heart Rate': gpx_df.at[index, 'Heart Rate'],
+            'Side': gpx_df.at[index, 'switch_sides'],
+            'Latitude': gpx_df.at[index, 'latitude'],
+            'Longitude': gpx_df.at[index, 'longitude'],
+            'heart_rate': gpx_df.at[index, 'heart_rate'],
         }
         temp_list.append(temp_dict)
     temp_df = pd.DataFrame(temp_list)
