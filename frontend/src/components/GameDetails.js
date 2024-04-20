@@ -43,16 +43,16 @@ const Position = styled.h2`
 const MidSection = styled.div`
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    align-items: center; // Center children horizontally
+    justify-content: center; // Center children horizontally
+    align-items: center; // Center children vertically
     width: 1000px;
     height: 800px;
 `;
 
 const Image = styled.img`
     margin-top: 10px;
-    max-width: 80%;
-    max-height: 80%;
+    max-width: 100%;
+    max-height: 100%;
 `;
 
 const ButtonToggle = styled.button`
@@ -88,7 +88,13 @@ const StyledLineGraph = styled(LineGraph)`
 `;
 
 const GameInfoTable = styled.table`
-    max-width: 300px;
+    max-width: 400px;
+`;
+
+const HeatMapButtons = styled.div`
+    display: flex;
+    flex-direction: column;
+    margin-left: 20px; // Add some space between the image and the buttons
 `;
 
 export default function GameDetails() {
@@ -158,44 +164,46 @@ export default function GameDetails() {
                     <>
                         <StyledLineGraph id="LineGraph1" heartRateData={data.heart_rate} />
                         <GameInfoTable>
-                            <tr>
-                                <td>Average Heart Rate</td>
-                                <td>{averageHeartRate}</td>
-                            </tr>
-                            <tr>
-                                <td>Max Heart Rate</td>
-                                <td>{maxHeartRate}</td>
-                            </tr>
-                            <tr>
-                                <td>Average Speed During Match</td>
-                                <td>{data.avg_speed}</td>
-                            </tr>
-                            <tr>
-                                <td>Total Distance Traveled</td>
-                                <td>{data.total_distance}</td>
-                            </tr>
+                        <tr>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px'}}>Average Heart Rate</td>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px'}}>{Math.round(averageHeartRate)} bpm</td>
+                        </tr>
+                        <tr>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>Max Heart Rate</td>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>{Math.round(maxHeartRate)} bpm</td>
+                        </tr>
+                        <tr>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>Average Speed During Match</td>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>{parseFloat(data.avg_speed).toFixed(2)} mph</td>
+                        </tr>
+                        <tr>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>Total Distance Traveled</td>
+                            <td style={{ fontSize: '20px', fontWeight: 'bold', padding: '10px 20px' }}>{Math.round(data.total_distance)} meters</td>
+                        </tr>
                         </GameInfoTable>
                     </>
                 )}
                 {selected.section === 'HeatMap' && (
-                    <div>
-                        <ButtonToggle
-                            selected={selected.heatmap === image}
-                            onClick={() => setSelected(prevState => ({ ...prevState, heatmap: image }))}
-                        >
-                            Full Game
-                        </ButtonToggle>
-                        {images.map((img, index) => (
-                            <ButtonToggle
-                                key={index}
-                                selected={selected.heatmap === img}
-                                onClick={() => setSelected(prevState => ({ ...prevState, heatmap: img }))}
-                            >
-                                Heatmap {index + 1}
-                            </ButtonToggle>
-                        ))}
+                    <>
                         {selected.heatmap && <Image src={selected.heatmap} alt="Heatmap" />}
-                    </div>
+                        <HeatMapButtons>
+                            <ButtonToggle
+                                selected={selected.heatmap === image}
+                                onClick={() => setSelected(prevState => ({ ...prevState, heatmap: image }))}
+                            >
+                                Full Game
+                            </ButtonToggle>
+                            {images.length > 1 && images.map((img, index) => (
+                                <ButtonToggle
+                                    key={index}
+                                    selected={selected.heatmap === img}
+                                    onClick={() => setSelected(prevState => ({ ...prevState, heatmap: img }))}
+                                >
+                                    Heatmap {index + 1}
+                                </ButtonToggle>
+                        ))}
+                        </HeatMapButtons>
+                    </>
                 )}
             </MidSection>
         </DetailsContainer>
