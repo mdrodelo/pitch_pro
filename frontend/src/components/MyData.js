@@ -36,7 +36,7 @@ const SectionContainer = styled.div`
 
 const GameLogSection = styled.div`
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr 1fr;
     grid-auto-columns: minmax(auto, 1fr);
     align-items: center;
     grid-template-areas: 'col1 col2';
@@ -70,6 +70,7 @@ const ImgContainer = styled.div`
     max-width: 555px;
     display: flex;
     justify-content: flex-start;
+    margin-left: 35px;
 `;
 
 const Img = styled.img`
@@ -102,7 +103,7 @@ const Img = styled.img`
 // `;
 
 const StyledTable = styled.table`
-    width: 800px;  // Adjust width as needed
+    width: 600px;  // Adjust width as needed
     margin: 0 auto; // Center table on the page
     border-collapse: collapse;
     border-spacing: 0 1em;
@@ -223,10 +224,8 @@ export default function MyData() {
                                         <tr>
                                             <StyledTh>Title</StyledTh>
                                             <StyledTh>Date</StyledTh>
-                                            <StyledTh>Position</StyledTh>
-                                            <StyledTh>Duration</StyledTh>
+                                            <StyledTh>Position</StyledTh> 
                                             <StyledTh>View</StyledTh>
-                                            <StyledTh>Delete</StyledTh>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -236,9 +235,7 @@ export default function MyData() {
                                                     <StyledTd>{val.game_title}</StyledTd>
                                                     <StyledTd>{val.game_date}</StyledTd>
                                                     <StyledTd>{val.position}</StyledTd>
-                                                    <StyledTd>{val.duration}</StyledTd>
                                                     <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
-                                                    <StyledTd><StyledButton>Delete</StyledButton></StyledTd>
                                                 </tr>
                                             )
                                         })}
@@ -248,7 +245,7 @@ export default function MyData() {
                         </Column1>
                         <Column2>
                             <ImgContainer>
-                                <Heatmap id={gameId} />
+                                <Heatmap id={gameId}/>
                             </ImgContainer>
                         </Column2>
                     </GameLogSection>
@@ -285,24 +282,8 @@ function AddGpx(props) {
 
 function DrawControls({ sendLatLngs }) {
     const map = useMap();
-    if (drawLayers) return;
-    else drawLayers = true;
 
     var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-    var drawControl = new L.Control.Draw({
-        draw: {
-            polyline: false,
-            rectangle: false,
-            circle: false,
-            marker: false,
-            circlemarker: false
-        },
-        edit: {
-            featureGroup: drawnItems
-        }
-    });
-    map.addControl(drawControl);
     map.on(L.Draw.Event.DRAWSTART, function () {
         drawnItems.eachLayer(function (layer) {
             map.removeLayer(layer);
@@ -426,7 +407,7 @@ function TheMap(props) {
                 <br/>
                 <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
                 <div id="map" padding={"10px"}>
-                    <MapContainer center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
+                    <MapContainer drawControl={true} center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem} />
