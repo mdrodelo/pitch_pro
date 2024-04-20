@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { LineGraph } from './Line'
@@ -14,6 +14,7 @@ const DetailsContainer = styled.div`
     display: flex; // Use flexbox
     flex-direction: column; // Stack children vertically
     align-items: center; // Center children horizontally
+    overflow: auto; // Add this line to prevent overflow
 `;
 
 const Title = styled.h1`
@@ -41,14 +42,17 @@ const Position = styled.h2`
 
 const MidSection = styled.div`
     display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center; // Center children horizontally
+    width: 1000px;
+    height: 800px;
 `;
 
 const Image = styled.img`
-    max-width: 100%;
-    height: 100%;
+    margin-top: 10px;
+    max-width: 80%;
+    max-height: 80%;
 `;
 
 const ButtonToggle = styled.button`
@@ -78,49 +82,122 @@ const ButtonContainer = styled.div`
     justify-content: space-between;
 `;
 
+const StyledLineGraph = styled(LineGraph)`
+    width: 70%;
+    height: 70%;
+`;
+
+const GameInfoTable = styled.table`
+    max-width: 300px;
+`;
+
 export default function GameDetails() {
-    const [selected, setSelected] = useState(null);
+    const [data, setData] = useState([]);
     const [image, setImage] = useState('');
+    const [images, setImages] = useState([]);
     let location = useLocation();
     let gameId = location.state && location.state.gameId;
 
-    client.post("api/heatmap", {
-        game_id: gameId
-    }).then(function(res) {
-        setImage(res.data['heatmap']);
-    });
+    
+
+    useEffect(() => {
+        client.post("/api/SingleGameData",
+        {
+            game_id: gameId
+        })
+        .then(function (res) {
+            console.log(res.data);
+            setData(res.data);
+        });
+
+        client.post("/api/heatmap", 
+        {
+            game_id: gameId
+        }).then(function(res) {
+            setImage(res.data['heatmap']);
+        });
+
+        client.post("/api/HeatmapsByHalves", 
+        {
+            game_id: gameId
+        }).then(function(res) {
+            console.log(res.data);
+            const heatmaps = res.data['heatmaps'];
+            setImages(heatmaps);
+            setSelected(prevState => ({ ...prevState, heatmap: heatmaps[0] })); // Set the first heatmap as the selected one by default
+        });
+
+    }, []);
+
+    const [selected, setSelected] = useState({ section: 'HeartRate', heatmap: image });
+
+    const averageHeartRate = data.heart_rate ? data.heart_rate.reduce((a, b) => a + b, 0) / data.heart_rate.length : 0;
+    const maxHeartRate = data.heart_rate ? Math.max(...data.heart_rate) : 0;
 
     return (
         <DetailsContainer>
-            <Title>Sunday League MatchDay #1</Title>
-            <Date>4/14/2024</Date>
-            <Position>Striker</Position>
+            <Title>{data ? data.title : 'Loading...'}</Title>
+            <Date>{data ? data.date : 'Loading...'}</Date>
+            <Position>{data ? data.position : 'Loading...'}</Position>
             <ButtonContainer>
                 <ButtonToggle
-                    slected={selected === 'HeartRate'}
-                    onClick={() => setSelected('HeartRate')}
+                    selected={selected.section === 'HeartRate'}
+                    onClick={() => setSelected({ section: 'HeartRate', heatmap: null })}
                 >
                     Heart Rate
                 </ButtonToggle>
                 <ButtonToggle 
-                    selected={selected === 'HeatMap'}
-                    onClick={() => setSelected('HeatMap')}
+                    selected={selected.section === 'HeatMap'}
+                    onClick={() => setSelected({ section: 'HeatMap', heatmap: image })}
                 >
                     Heat Map
                 </ButtonToggle>
-                <ButtonToggle 
-                    selected={selected === 'VitalStats'}
-                    onClick={() => setSelected('VitalStats')}
-                >
-                    Vital Stats
-                </ButtonToggle>
             </ButtonContainer>
             <MidSection>
-                {selected === 'HeartRate' && <LineGraph id="LineGraph1" />}
-                {selected === 'HeatMap' && <Image src={image} alt='all' />}
-                {selected === 'VitalStats' && <LineGraph id="LineGraph2" />}
+                {selected.section === 'HeartRate' && (
+                    <>
+                        <StyledLineGraph id="LineGraph1" heartRateData={data.heart_rate} />
+                        <GameInfoTable>
+                            <tr>
+                                <td>Average Heart Rate</td>
+                                <td>{averageHeartRate}</td>
+                            </tr>
+                            <tr>
+                                <td>Max Heart Rate</td>
+                                <td>{maxHeartRate}</td>
+                            </tr>
+                            <tr>
+                                <td>Average Speed During Match</td>
+                                <td>{data.avg_speed}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Distance Traveled</td>
+                                <td>{data.total_distance}</td>
+                            </tr>
+                        </GameInfoTable>
+                    </>
+                )}
+                {selected.section === 'HeatMap' && (
+                    <div>
+                        <ButtonToggle
+                            selected={selected.heatmap === image}
+                            onClick={() => setSelected(prevState => ({ ...prevState, heatmap: image }))}
+                        >
+                            Full Game
+                        </ButtonToggle>
+                        {images.map((img, index) => (
+                            <ButtonToggle
+                                key={index}
+                                selected={selected.heatmap === img}
+                                onClick={() => setSelected(prevState => ({ ...prevState, heatmap: img }))}
+                            >
+                                Heatmap {index + 1}
+                            </ButtonToggle>
+                        ))}
+                        {selected.heatmap && <Image src={selected.heatmap} alt="Heatmap" />}
+                    </div>
+                )}
             </MidSection>
         </DetailsContainer>
-       
     );
 }

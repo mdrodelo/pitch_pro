@@ -7,10 +7,13 @@ class GameData(models.Model):
     game_title = models.CharField(max_length=50, null=True)
     user_id = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='+')
     game_date = models.DateField()
+    position = models.TextField(default="NA")
     field_parameters = models.TextField()
-
-    def create_game(self, title, date, field, user):
-        game = self.model(game_title=title, game_date=date, user_id=user, field_parameters=field)
+    avg_speed = models.FloatField(default=0)
+    total_distance = models.IntegerField(default=0)
+    
+    def create_game(self, title, date, field, user, position):
+        game = self.model(game_title=title, game_date=date, field_parameters=field, user_id=user, position=position)
         game.save()
         return game
 

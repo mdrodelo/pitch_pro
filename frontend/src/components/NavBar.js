@@ -54,6 +54,13 @@ const Header = styled.h1`
     margin-top: 280px;
 `;
 
+const HeaderLogin = styled.h1`
+    color: #000;
+    font-size: 6rem;
+    font-weight: 800;
+    margin-top: 200px;
+`;
+
 const SubHeader = styled.h2`
     color: #000;
     font-size: 6rem;
@@ -61,6 +68,15 @@ const SubHeader = styled.h2`
     text-align: center;
     margin-top: 10px;
 `;
+
+const SubHeaderLogin = styled.h2`
+    color: #000;
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 30px;
+`;
+
 const NavbarContainer = styled.div`
     display: flex;
     justify-content: space-between;
@@ -166,7 +182,10 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
                         {currentUser ? (
                             <>
                                 <NavItem>
-                                    <NavLinks to='mydata'>MyData</NavLinks>
+                                    <NavLinks to='add-data-section'>Add Data</NavLinks>
+                                </NavItem>
+                                <NavItem>
+                                    <NavLinks to='my-data-section'>My Data</NavLinks>
                                 </NavItem>
                                 <NavButton>
                                     <NavButtonLink to='/' onClick={(e) => submitLogout(e)}>Logout</NavButtonLink>
@@ -193,8 +212,8 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
                <Content>
                 {currentUser ? (
                     <>
-                        <Header>Welcome back, Username!</Header>
-                        <SubHeader>Ready to take your game to the NEXT LEVEL?</SubHeader>
+                        <HeaderLogin>Welcome back!</HeaderLogin>
+                        <SubHeaderLogin>Ready to take your game to the NEXT LEVEL?</SubHeaderLogin>
                     </>
                 ) : (
                     <>

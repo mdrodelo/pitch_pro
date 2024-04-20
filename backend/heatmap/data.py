@@ -8,16 +8,18 @@ pip3 install gpxpy
 import io
 
 import utm as utm
+import matplotlib.pyplot as plt
 import os
 import gpxpy
 import gpxpy.gpx
 import xml.etree.ElementTree as ET
 import pandas as pd
+import numpy as np
 import sys
 import math
-from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
 import base64
-
+from scipy.ndimage import gaussian_filter
+from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
 
 def parse_gpx(gpxFile, events=[]):
     gpx = gpxpy.parse(gpxFile)
@@ -25,12 +27,11 @@ def parse_gpx(gpxFile, events=[]):
     total_distance = None
     average_speed = None
     events_length = len(events)
+    if events_length == 0:
+        events['0'] = [-1, sys.maxsize, False]
     e_index = 0
-    play_start = sys.maxsize - 1
-    play_end = sys.maxsize
-    if events_length > 0:
-        play_start = events[e_index][0]
-        play_end = events[e_index][1]
+    play_start = events[str(e_index)][0]
+    play_end = events[str(e_index)][1]
     point_count = 0
     for track in gpx.tracks:
         for segment in track.segments:
@@ -41,8 +42,8 @@ def parse_gpx(gpxFile, events=[]):
                         play_start = sys.maxsize - 1
                         play_end = sys.maxsize
                     else:
-                        play_start = events[e_index][0]
-                        play_end = events[e_index][1]
+                        play_start = events[str(e_index)][0]
+                        play_end = events[str(e_index)][1]
                 if point_count < play_start:
                     point_count += 1
                     continue
@@ -52,7 +53,7 @@ def parse_gpx(gpxFile, events=[]):
                     'Timestamp': point.time.strftime('%H:%M:%S'),
                     'Latitude': point.latitude,
                     'Longitude': point.longitude,
-                    'Side': events[e_index][2]
+                    'Side': events[str(e_index)][2]
                 }
                 extension_data = parse_extensions(point.extensions)
                 for key, value in extension_data.items():
@@ -73,9 +74,7 @@ def parse_gpx(gpxFile, events=[]):
             average_speed = float(avgspeed_elem.text)
 
     df = pd.DataFrame(data_points)
-
-    # return data_points, average_speed, total_distance, df
-    return df
+    return average_speed, total_distance, df
 
 
 def parse_extensions(extensions):
@@ -107,9 +106,22 @@ def draw_heatmap(gpx_df, field):
     align_to_positive(gpx_df, field_df, corner0_index)
     drop_outside_bounds(gpx_df, field_df)
     scale_gpx(gpx_df, field_df)
-    pitch = Pitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
-    fig, ax = pitch.draw()
+    pitch = VerticalPitch(pitch_type='statsbomb', line_zorder=2,
+                          pitch_color='#030c12', line_color='#efefef')
+    fig, ax = pitch.draw(figsize=(8,12))
+    fig.set_facecolor('#030c12')
+    bin_statistic = pitch.bin_statistic(gpx_df.Longitude, gpx_df.Latitude,
+                                        statistic='count', bins=(50,35))
+    bin_statistic['statistic'] = gaussian_filter(bin_statistic['statistic'], 1)
+    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')#, edgecolors='#223212b')
+    cbar = fig.colorbar(pcm, ax=ax, shrink=0.5)
+    cbar.ax.yaxis.set_tick_params(color='#efefef', labelsize=15)
+    ticks = plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='#efefef')
+    """ OG Vertical Pitch
+    pitch = VerticalPitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
+    fig, ax = pitch.draw(figsize=(8, 12))
     kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
+    """
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
@@ -118,6 +130,33 @@ def draw_heatmap(gpx_df, field):
     res = res.decode('utf-8')
     data = "data:image/jpeg;base64," + res
     return data
+
+
+def draw_heatmap_by_halves(gpx_df, field):
+    print(gpx_df)
+    heatmaps_list = []
+    temp_list = []
+    start_side = None
+    for index, row in gpx_df.iterrows():
+        this_side = gpx_df.at[index, 'switch_sides']
+        if start_side is None:
+            start_side = this_side
+        if start_side != this_side:
+            temp_df = pd.DataFrame(temp_list)
+            heatmaps_list.append(draw_heatmap(temp_df, field))
+            temp_list.clear()
+            start_side = this_side
+        temp_dict = {
+            'Side': gpx_df.at[index, 'switch_sides'],
+            'Latitude': gpx_df.at[index, 'latitude'],
+            'Longitude': gpx_df.at[index, 'longitude'],
+            'heart_rate': gpx_df.at[index, 'heart_rate'],
+        }
+        temp_list.append(temp_dict)
+    temp_df = pd.DataFrame(temp_list)
+    heatmaps_list.append(draw_heatmap(temp_df, field))
+    return heatmaps_list
+
 
 def parse_field_params(field):
     parsed = field.split(" ")
@@ -293,3 +332,8 @@ def align_to_positive(gpx, field, origin_index):
       gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
     for index, row in field.iterrows():
       field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+
+
+def heartrate_by_min(df):
+    heartrate_df = df['heart_rate']
+    return heartrate_df.groupby(np.arange(len(df)) // 60).mean()
