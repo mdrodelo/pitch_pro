@@ -9,6 +9,8 @@ class GameData(models.Model):
     game_date = models.DateField()
     position = models.TextField(default="NA")
     field_parameters = models.TextField()
+    avg_speed = models.FloatField(default=0)
+    total_distance = models.IntegerField(default=0)
 
     def create_game(self, title, date, field, user, position):
         game = self.model(game_title=title, game_date=date, field_parameters=field, user_id=user, position=position)

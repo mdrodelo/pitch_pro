@@ -72,11 +72,8 @@ def parse_gpx(gpxFile, events=[]):
             total_distance = float(distance_elem.text)
         if avgspeed_elem is not None:
             average_speed = float(avgspeed_elem.text)
-
     df = pd.DataFrame(data_points)
-
-    # return data_points, average_speed, total_distance, df
-    return df
+    return average_speed, total_distance, df
 
 
 def parse_extensions(extensions):
