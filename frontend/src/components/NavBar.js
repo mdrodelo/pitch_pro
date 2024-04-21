@@ -7,6 +7,7 @@ import Cookies from 'js-cookie';
 import {useEffect, useState, useContext} from "react";
 import { useNavigate } from 'react-router-dom';
 import img from '../images/BackGround4.png'
+import img2 from '../images/SoccerField.png';
 import client from "./api";
 import { EmailContext } from '../App';
 
@@ -48,21 +49,21 @@ const Content = styled.div`
 `;
 
 const Header = styled.h1`
-    color: #000;
+    color: #fff;
     font-size: 1.6rem;
     font-weight: 800;
     margin-top: 280px;
 `;
 
 const HeaderLogin = styled.h1`
-    color: #000;
+    color: #fff;
     font-size: 6rem;
     font-weight: 800;
-    margin-top: 200px;
+    margin-top: 280px;
 `;
 
 const SubHeader = styled.h2`
-    color: #000;
+    color: #fff;
     font-size: 6rem;
     font-weight: 800;
     text-align: center;
@@ -70,11 +71,11 @@ const SubHeader = styled.h2`
 `;
 
 const SubHeaderLogin = styled.h2`
-    color: #000;
+    color: #fff;
     font-size: 1.6rem;
     font-weight: 800;
     text-align: center;
-    margin-top: 30px;
+    margin-top: 10px;
 `;
 
 const NavbarContainer = styled.div`
@@ -88,7 +89,7 @@ const NavbarContainer = styled.div`
 `;
 
 const NavLogo = styled(LinkRouter)`
-    color: #000;
+    color: #fff;
     justify-self: flex-start;
     cursor: pointer;
     font-size: 3rem;
@@ -113,7 +114,7 @@ const NavItem = styled.li`
 `;
 
 const NavLinks = styled(LinkScroll)`
-    color: #000;
+    color: #fff;
     display: flex;
     align-items: center;
     text-decoration: none;
@@ -174,7 +175,7 @@ const NavBar = ({ currentUser, setCurrentUser }) => {
         <>
             <Nav>
                 <BackGround>
-                    <BackGroundVideo src={img} alt = 'all'/>
+                    <BackGroundVideo src={img2} alt = 'all'/>
                 </BackGround>
                <NavbarContainer>
                     <NavLogo to= '/'>PitchPro</NavLogo>
