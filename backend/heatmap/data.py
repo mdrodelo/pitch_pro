@@ -180,11 +180,9 @@ def degrees_to_radians(degrees):
 def rotate_cartesian(x, y, angle_degrees):
     # Convert angle from degrees to radians
     angle_radians = math.radians(angle_degrees)
-
     # Perform rotation
     x_rotated = x * math.cos(angle_radians) - y * math.sin(angle_radians)
     y_rotated = x * math.sin(angle_radians) + y * math.cos(angle_radians)
-
     return x_rotated, y_rotated
 
 
