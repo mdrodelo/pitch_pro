@@ -89,7 +89,7 @@ def parse_extensions(extensions):
 
 
 def draw_heatmap(gpx_df, field):
-    gpx_df = gpx_df.rename(columns={"longitude":"Longitude", "latitude":"Latitude"})
+    gpx_df = gpx_df.rename(columns={"longitude": "Longitude", "latitude": "Latitude"})
     field_params = parse_field_params(field)
     field_df = pd.DataFrame(field_params, columns=['Longitude', 'Latitude'])
     corner0_index, corner1_index = side_selector(field_df)
@@ -103,25 +103,21 @@ def draw_heatmap(gpx_df, field):
     lat_lon_adjust(field_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
     rotate_df(field_df, angle)
     rotate_df(gpx_df, angle)
-    align_to_positive(gpx_df, field_df, corner0_index)
+    lat_flip, lon_flip = align_to_positive(gpx_df, field_df, corner0_index)
     drop_outside_bounds(gpx_df, field_df)
     scale_gpx(gpx_df, field_df)
-    pitch = VerticalPitch(pitch_type='statsbomb', line_zorder=2,
+    side_switch(gpx_df)
+    pitch = VerticalPitch(pitch_type='custom', line_zorder=2, pitch_length=105, pitch_width=68,
                           pitch_color='#030c12', line_color='#efefef')
-    fig, ax = pitch.draw(figsize=(8,12))
+    fig, ax = pitch.draw(figsize=(8, 12))
     fig.set_facecolor('#030c12')
     bin_statistic = pitch.bin_statistic(gpx_df.Longitude, gpx_df.Latitude,
-                                        statistic='count', bins=(50,35))
+                                        statistic='count', bins=(50, 35))
     bin_statistic['statistic'] = gaussian_filter(bin_statistic['statistic'], 1)
-    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')#, edgecolors='#223212b')
+    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')
     cbar = fig.colorbar(pcm, ax=ax, shrink=0.5)
     cbar.ax.yaxis.set_tick_params(color='#efefef', labelsize=15)
     ticks = plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='#efefef')
-    """ OG Vertical Pitch
-    pitch = VerticalPitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
-    fig, ax = pitch.draw(figsize=(8, 12))
-    kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
-    """
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
@@ -295,45 +291,71 @@ def scale_gpx(gpx, field):
 
 
 def align_to_positive(gpx, field, origin_index):
-  """
-  Makes field and gpx points positive if values are negative
-  """
-  prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
-  next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
-  # lat
-  origin_lat = field.at[origin_index, 'Latitude']
-  prev_lat = field.at[prev_index, 'Latitude']
-  next_lat = field.at[next_index, 'Latitude']
-  prev_length = prev_lat - origin_lat
-  next_length = next_lat - origin_lat
-  flip = False
-  if (abs(prev_length) > abs(next_length)):
-    if prev_length < 0: flip = True
-  else:
-    if next_length < 0: flip = True
-  if flip:
-    for index, row in gpx.iterrows():
-      gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * -1
-    for index, row in field.iterrows():
-      field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
-  # lon
-  origin_lon = field.at[origin_index, 'Longitude']
-  prev_lon = field.at[prev_index, 'Longitude']
-  next_lon = field.at[next_index, 'Longitude']
-  prev_length = prev_lon - origin_lon
-  next_length = next_lon - origin_lon
-  flip = False
-  if (abs(prev_length) > abs(next_length)):
-    if prev_length < 0: flip = True
-  else:
-    if next_length < 0: flip = True
-  if flip:
-    for index, row in gpx.iterrows():
-      gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
-    for index, row in field.iterrows():
-      field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+    """
+    Makes field and gpx points positive if values are negative
+    """
+    lat_flip = False
+    lon_flip = False
+    prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
+    next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
+    # lat
+    origin_lat = field.at[origin_index, 'Latitude']
+    prev_lat = field.at[prev_index, 'Latitude']
+    next_lat = field.at[next_index, 'Latitude']
+    prev_length = prev_lat - origin_lat
+    next_length = next_lat - origin_lat
+    flip = False
+    distance_to_adjust = 0
+    if abs(prev_length) > abs(next_length):
+        if prev_length < 0:
+            flip = True
+            distance_to_adjust = abs(prev_length)
+    else:
+        if next_length < 0:
+            flip = True
+            distance_to_adjust = abs(next_length)
+    if flip:
+        lat_flip = True
+        for index, row in gpx.iterrows():
+            #gpx.at[index, 'Latitude'] = gpx.at[index, 'Latitude'] * -1
+            gpx.at[index, 'Latitude'] = gpx.at[index, 'Latitude'] + distance_to_adjust
+        for index, row in field.iterrows():
+            #field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
+            field.at[index, 'Latitude'] = field.at[index, 'Latitude'] + distance_to_adjust
+    # lon
+    origin_lon = field.at[origin_index, 'Longitude']
+    prev_lon = field.at[prev_index, 'Longitude']
+    next_lon = field.at[next_index, 'Longitude']
+    prev_length = prev_lon - origin_lon
+    next_length = next_lon - origin_lon
+    flip = False
+    distance_to_adjust = 0
+    if abs(prev_length) > abs(next_length):
+        if prev_length < 0:
+            flip = True
+            distance_to_adjust = abs(prev_length)
+    else:
+        if next_length < 0:
+            flip = True
+            distance_to_adjust = abs(next_length)
+    if flip:
+        lon_flip = True
+        for index, row in gpx.iterrows():
+            #gpx.at[index, 'Longitude'] = gpx.at[index, 'Longitude'] * -1
+            gpx.at[index, 'Longitude'] = gpx.at[index, 'Longitude'] + distance_to_adjust
+        for index, row in field.iterrows():
+            #field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+            field.at[index, 'Longitude'] = field.at[index, 'Longitude'] + distance_to_adjust
+    return lat_flip, lon_flip
 
 
 def heartrate_by_min(df):
     heartrate_df = df['heart_rate']
     return heartrate_df.groupby(np.arange(len(df)) // 60).mean()
+
+
+def side_switch(gpx):
+    for index, row in gpx.iterrows():
+        if (gpx.at[index, 'switch_sides'] == False):
+            gpx.at[index, 'Latitude'] = 68 - gpx.at[index, 'Latitude']
+            gpx.at[index, 'Longitude'] = 105 - gpx.at[index, 'Longitude']
