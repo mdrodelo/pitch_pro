@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import img from '../images/image1.svg';
+import img from '../images/image4.png';
 import img2 from '../images/image1.png';
 
 const HomeContainer = styled.div`
