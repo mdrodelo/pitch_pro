@@ -21,6 +21,7 @@ import base64
 from scipy.ndimage import gaussian_filter
 from mplsoccer import Pitch, VerticalPitch, FontManager, Sbopen
 
+
 def parse_gpx(gpxFile, events=[]):
     gpx = gpxpy.parse(gpxFile)
     data_points = []
@@ -89,7 +90,7 @@ def parse_extensions(extensions):
 
 
 def draw_heatmap(gpx_df, field):
-    gpx_df = gpx_df.rename(columns={"longitude":"Longitude", "latitude":"Latitude"})
+    gpx_df = gpx_df.rename(columns={"longitude": "Longitude", "latitude": "Latitude"})
     field_params = parse_field_params(field)
     field_df = pd.DataFrame(field_params, columns=['Longitude', 'Latitude'])
     corner0_index, corner1_index = side_selector(field_df)
@@ -98,7 +99,6 @@ def draw_heatmap(gpx_df, field):
         field_df.at[corner0_index, 'Longitude'],
         field_df.at[corner1_index, 'Latitude'],
         field_df.at[corner1_index, 'Longitude'])
-    angle = angle % 180
     lat_lon_adjust(gpx_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
     lat_lon_adjust(field_df, field_df.at[corner0_index, 'Latitude'], field_df.at[corner0_index, 'Longitude'])
     rotate_df(field_df, angle)
@@ -106,22 +106,18 @@ def draw_heatmap(gpx_df, field):
     align_to_positive(gpx_df, field_df, corner0_index)
     drop_outside_bounds(gpx_df, field_df)
     scale_gpx(gpx_df, field_df)
-    pitch = VerticalPitch(pitch_type='statsbomb', line_zorder=2,
+    side_switch(gpx_df)
+    pitch = VerticalPitch(pitch_type='custom', line_zorder=2, pitch_length=105, pitch_width=68,
                           pitch_color='#030c12', line_color='#efefef')
-    fig, ax = pitch.draw(figsize=(8,12))
+    fig, ax = pitch.draw(figsize=(8, 12))
     fig.set_facecolor('#030c12')
     bin_statistic = pitch.bin_statistic(gpx_df.Longitude, gpx_df.Latitude,
-                                        statistic='count', bins=(50,35))
+                                        statistic='count', bins=(50, 35))
     bin_statistic['statistic'] = gaussian_filter(bin_statistic['statistic'], 1)
-    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')#, edgecolors='#223212b')
+    pcm = pitch.heatmap(bin_statistic, ax=ax, cmap='hot')
     cbar = fig.colorbar(pcm, ax=ax, shrink=0.5)
     cbar.ax.yaxis.set_tick_params(color='#efefef', labelsize=15)
     ticks = plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='#efefef')
-    """ OG Vertical Pitch
-    pitch = VerticalPitch(line_color='black', line_zorder=2, pitch_type='custom', pitch_length=105, pitch_width=68, )
-    fig, ax = pitch.draw(figsize=(8, 12))
-    kde = pitch.kdeplot(gpx_df.Longitude, gpx_df.Latitude, ax=ax, fill=True, )
-    """
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
@@ -133,7 +129,6 @@ def draw_heatmap(gpx_df, field):
 
 
 def draw_heatmap_by_halves(gpx_df, field):
-    print(gpx_df)
     heatmaps_list = []
     temp_list = []
     start_side = None
@@ -147,7 +142,7 @@ def draw_heatmap_by_halves(gpx_df, field):
             temp_list.clear()
             start_side = this_side
         temp_dict = {
-            'Side': gpx_df.at[index, 'switch_sides'],
+            'switch_sides': gpx_df.at[index, 'switch_sides'],
             'Latitude': gpx_df.at[index, 'latitude'],
             'Longitude': gpx_df.at[index, 'longitude'],
             'heart_rate': gpx_df.at[index, 'heart_rate'],
@@ -165,41 +160,39 @@ def parse_field_params(field):
         field_params.append([float(parsed[i + 1]), float(parsed[i])])
     return field_params
 
+
 def lat_lon_adjust(df, latmin=0, lonmin=0):
-  # lat_min and lon_min need to be coordinates from the field parameters
-  for index, row in df.iterrows():
-    lat, lon, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'], df.at[index, 'Longitude'])
-    df.at[index, 'Latitude']=lat
-    df.at[index, 'Longitude']=lon
-  latmin, lonmin, _zn, _zl = utm.from_latlon(latmin, lonmin)
-
-  for index, row in df.iterrows():
-    df.at[index, 'Latitude'] =  df.at[index, 'Latitude']-latmin
-    df.at[index, 'Longitude'] = df.at[index, 'Longitude']-lonmin
-
-  return df
+    # lat_min and lon_min need to be coordinates from the field parameters
+    for index, row in df.iterrows():
+        lon, lat, _zn, _zl = utm.from_latlon(df.at[index, 'Latitude'], df.at[index, 'Longitude'])
+        df.at[index, 'Latitude'] = lat
+        df.at[index, 'Longitude'] = lon
+    lonmin, latmin, _zn, _zl = utm.from_latlon(latmin, lonmin)
+    for index, row in df.iterrows():
+        df.at[index, 'Latitude'] = df.at[index, 'Latitude'] - latmin
+        df.at[index, 'Longitude'] = df.at[index, 'Longitude'] - lonmin
+    return df
 
 
 def degrees_to_radians(degrees):
     return degrees * math.pi / 180
 
+
 def rotate_cartesian(x, y, angle_degrees):
     # Convert angle from degrees to radians
     angle_radians = math.radians(angle_degrees)
-
     # Perform rotation
     x_rotated = x * math.cos(angle_radians) - y * math.sin(angle_radians)
     y_rotated = x * math.sin(angle_radians) + y * math.cos(angle_radians)
-
     return x_rotated, y_rotated
 
 
 def rotate_df(df, angle):
-  for index, row in df.iterrows():
-    xr,yr=rotate_cartesian( df.at[index, 'Longitude'],df.at[index, 'Latitude'], -angle)
-    df.at[index, 'Latitude'] =  xr
-    df.at[index, 'Longitude'] = yr
-  return df
+    for index, row in df.iterrows():
+        xr, yr = rotate_cartesian(df.at[index, 'Longitude'], df.at[index, 'Latitude'], angle)
+        df.at[index, 'Longitude'] = xr
+        df.at[index, 'Latitude'] = yr
+    return df
 
 
 def distance(lat1, lon1, lat2, lon2):
@@ -225,8 +218,8 @@ def distance(lat1, lon1, lat2, lon2):
     # Haversine formula
     dlon = lon2_rad - lon1_rad
     dlat = lat2_rad - lat1_rad
-    a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     earth_radius_km = 6371000  # Radius of the Earth in kilometers
     distance = earth_radius_km * c
 
@@ -234,106 +227,134 @@ def distance(lat1, lon1, lat2, lon2):
 
 
 def calculate_azimuth(lat1, lon1, lat2, lon2):
-  # https://www.omnicalculator.com/other/azimuth
-  lat1 = math.radians(lat1)
-  lon1 = math.radians(lon1)
-  lat2 = math.radians(lat2)
-  lon2 = math.radians(lon2)
-  delta_lat = lat2 - lat1
-  delta_lon = lon2 - lon1
-  atan_part1 = math.sin(delta_lon) * math.cos(lat2)
-  atan_part2a = math.cos(lat1) * math.sin(lat2)
-  atan_part2b = math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon)
-  azimuth = math.atan2(atan_part1, atan_part2a - atan_part2b)
-  degrees = math.degrees(azimuth)
-  if degrees < 0:
-    degrees += 360
-  return degrees
+    # https://www.omnicalculator.com/other/azimuth
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+    delta_lat = lat2 - lat1
+    delta_lon = lon2 - lon1
+    atan_part1 = math.sin(delta_lon) * math.cos(lat2)
+    atan_part2a = math.cos(lat1) * math.sin(lat2)
+    atan_part2b = math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon)
+    azimuth = math.atan2(atan_part1, atan_part2a - atan_part2b)
+    degrees = math.degrees(azimuth)
+    if degrees < 0:
+        degrees += 360
+    return degrees
 
 
 def side_selector(field):
-  """
-  Finds the index (field corner) containing the minimum longitude, aka "target"
-  Compares length of each side connected to that corner
-  Returns indexes of the target and index of the corner that it shares the shorter side with
-  """
-  min = 999
-  min_index = -1
-  for index, row in field.iterrows():
-    if row.Longitude < min:
-      min = row.Longitude
-      min_index = index
-  prev_index = min_index - 1 if min_index - 1 >= 0 else 3
-  next_index = min_index + 1 if min_index + 1 <= 3 else 0
-  distance_to_prev = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[prev_index, 'Latitude'], field.at[prev_index, 'Longitude'])
-  distance_to_next = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'], field.at[next_index, 'Latitude'], field.at[next_index, 'Longitude'])
-  if min_index == -1:
-    # some sort of error, I don't know
-    return min_index, min_index
-  if (distance_to_prev > distance_to_next):
-    return min_index, next_index
-  else:
-    return min_index, prev_index
+    """
+    Finds the index (field corner) containing the minimum longitude, aka "target"
+    Compares length of each side connected to that corner
+    Returns indexes of the target and index of the corner that it shares the shorter side with
+    """
+    minimum = 999
+    min_index = -1
+    for index, row in field.iterrows():
+        if row.Longitude < minimum:
+            minimum = row.Longitude
+            min_index = index
+    prev_index = min_index - 1 if min_index - 1 >= 0 else 3
+    next_index = min_index + 1 if min_index + 1 <= 3 else 0
+    distance_to_prev = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'],
+                                field.at[prev_index, 'Latitude'], field.at[prev_index, 'Longitude'])
+    distance_to_next = distance(field.at[min_index, 'Latitude'], field.at[min_index, 'Longitude'],
+                                field.at[next_index, 'Latitude'], field.at[next_index, 'Longitude'])
+    if min_index == -1:
+        # some sort of error, I don't know
+        return min_index, min_index
+    if (distance_to_prev > distance_to_next):
+        return min_index, next_index
+    else:
+        return min_index, prev_index
 
 
 def drop_outside_bounds(gpx, field):
-  # Drops gpx coordinates above max or below min (0)
-  gpx.drop(gpx[(gpx.Longitude > field.Longitude.max()) | (gpx.Longitude < 0)].index, inplace=True)
-  gpx.drop(gpx[(gpx.Latitude > field.Latitude.max()) | (gpx.Latitude < 0)].index, inplace=True)
+    # Drops gpx coordinates above max or below min (0)
+    gpx.drop(gpx[(gpx.Longitude > field.Longitude.max()) | (gpx.Longitude < 0)].index, inplace=True)
+    gpx.drop(gpx[(gpx.Latitude > field.Latitude.max()) | (gpx.Latitude < 0)].index, inplace=True)
 
 
 def scale_gpx(gpx, field):
-  """
-  Scales gpx coordinates according to ratio of regular field size to given field
-  regular field size: 105 x 68 meters
-  """
-  lon_scale = 105 / field.Longitude.max()
-  lat_scale = 68 / field.Latitude.max()
-  for index, row in gpx.iterrows():
-    gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * lat_scale
-    gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * lon_scale
+    """
+    Scales gpx coordinates according to ratio of regular field size to given field
+    regular field size: 105 x 68 meters
+    """
+    lon_scale = 105 / field.Longitude.max()
+    lat_scale = 68 / field.Latitude.max()
+    for index, row in gpx.iterrows():
+        gpx.at[index, 'Latitude'] = gpx.at[index, 'Latitude'] * lat_scale
+        gpx.at[index, 'Longitude'] = gpx.at[index, 'Longitude'] * lon_scale
 
 
 def align_to_positive(gpx, field, origin_index):
-  """
-  Makes field and gpx points positive if values are negative
-  """
-  prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
-  next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
-  # lat
-  origin_lat = field.at[origin_index, 'Latitude']
-  prev_lat = field.at[prev_index, 'Latitude']
-  next_lat = field.at[next_index, 'Latitude']
-  prev_length = prev_lat - origin_lat
-  next_length = next_lat - origin_lat
-  flip = False
-  if (abs(prev_length) > abs(next_length)):
-    if prev_length < 0: flip = True
-  else:
-    if next_length < 0: flip = True
-  if flip:
-    for index, row in gpx.iterrows():
-      gpx.at[index, 'Latitude'] = gpx.at[index,'Latitude'] * -1
-    for index, row in field.iterrows():
-      field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
-  # lon
-  origin_lon = field.at[origin_index, 'Longitude']
-  prev_lon = field.at[prev_index, 'Longitude']
-  next_lon = field.at[next_index, 'Longitude']
-  prev_length = prev_lon - origin_lon
-  next_length = next_lon - origin_lon
-  flip = False
-  if (abs(prev_length) > abs(next_length)):
-    if prev_length < 0: flip = True
-  else:
-    if next_length < 0: flip = True
-  if flip:
-    for index, row in gpx.iterrows():
-      gpx.at[index, 'Longitude'] = gpx.at[index,'Longitude'] * -1
-    for index, row in field.iterrows():
-      field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+    """
+    Makes field and gpx points positive if values are negative
+    """
+    lat_flip = False
+    lon_flip = False
+    prev_index = origin_index - 1 if origin_index - 1 >= 0 else 3
+    next_index = origin_index + 1 if origin_index + 1 <= 3 else 0
+    # lat
+    origin_lat = field.at[origin_index, 'Latitude']
+    prev_lat = field.at[prev_index, 'Latitude']
+    next_lat = field.at[next_index, 'Latitude']
+    prev_length = prev_lat - origin_lat
+    next_length = next_lat - origin_lat
+    flip = False
+    distance_to_adjust = 0
+    if abs(prev_length) > abs(next_length):
+        if prev_length < 0:
+            flip = True
+            distance_to_adjust = abs(prev_length)
+    else:
+        if next_length < 0:
+            flip = True
+            distance_to_adjust = abs(next_length)
+    if flip:
+        lat_flip = True
+        for index, row in gpx.iterrows():
+            #gpx.at[index, 'Latitude'] = gpx.at[index, 'Latitude'] * -1
+            gpx.at[index, 'Latitude'] = gpx.at[index, 'Latitude'] + distance_to_adjust
+        for index, row in field.iterrows():
+            #field.at[index, 'Latitude'] = field.at[index, 'Latitude'] * -1
+            field.at[index, 'Latitude'] = field.at[index, 'Latitude'] + distance_to_adjust
+    # lon
+    origin_lon = field.at[origin_index, 'Longitude']
+    prev_lon = field.at[prev_index, 'Longitude']
+    next_lon = field.at[next_index, 'Longitude']
+    prev_length = prev_lon - origin_lon
+    next_length = next_lon - origin_lon
+    flip = False
+    distance_to_adjust = 0
+    if abs(prev_length) > abs(next_length):
+        if prev_length < 0:
+            flip = True
+            distance_to_adjust = abs(prev_length)
+    else:
+        if next_length < 0:
+            flip = True
+            distance_to_adjust = abs(next_length)
+    if flip:
+        lon_flip = True
+        for index, row in gpx.iterrows():
+            #gpx.at[index, 'Longitude'] = gpx.at[index, 'Longitude'] * -1
+            gpx.at[index, 'Longitude'] = gpx.at[index, 'Longitude'] + distance_to_adjust
+        for index, row in field.iterrows():
+            #field.at[index, 'Longitude'] = field.at[index, 'Longitude'] * -1
+            field.at[index, 'Longitude'] = field.at[index, 'Longitude'] + distance_to_adjust
+    return lat_flip, lon_flip
 
 
 def heartrate_by_min(df):
     heartrate_df = df['heart_rate']
     return heartrate_df.groupby(np.arange(len(df)) // 60).mean()
+
+
+def side_switch(gpx):
+    for index, row in gpx.iterrows():
+        if (gpx.at[index, 'switch_sides'] == False):
+            gpx.at[index, 'Latitude'] = 68 - gpx.at[index, 'Latitude']
+            gpx.at[index, 'Longitude'] = 105 - gpx.at[index, 'Longitude']
