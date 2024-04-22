@@ -10,36 +10,88 @@ import 'leaflet-draw';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './MyData.css';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Heatmap from './Heatmap';
 import client from "./api";
 import { EmailContext } from '../App';
 import { useNavigate } from 'react-router-dom';
 import Slider from "./Slider";
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
 const HomeContainer = styled.div`
     color: #fff;
     background-color: #030c12;
+    animation: ${fadeIn} 1s ease-out;
 `;
 
 const SectionContainer = styled.div`
     width: 100%;
-    display: grid;
-    height: 860px;
-    padding: 0 24px;
-    justify-content: center;
-    z-index: 1;
-    max-width: 1100px;
-    margin-right: auto;
-    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+`;
+
+const MapWrapper = styled.div`
+  height: 400px; // Adjust this height to fit within your overall form or section
+  width: 100%;  // Ensures the map container takes up only the available width
+  padding: 10px;
+  background: #1b2838; // A subtly lighter shade of grey-blue
+  border-radius: 8px;  // Optional: for styling
+  overflow: hidden;  // Ensures nothing extends outside the boundaries
+`;
+
+const UnifiedFormContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background: #030c12;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  margin-bottom: 20px;
+`;
+
+const Label = styled(Form.Label)`
+  font-size: 18px; // Slightly larger for emphasis
+  font-weight: bold; // Bold for label emphasis
+  color: #fff; // White to distinguish from input text but maintain readability
+  margin-right: 5px; // Space between label and input field
+`;
+
+const StyledForm = styled(Form)`
+  background: #1b2838; // A subtly lighter shade of grey-blue
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 `;
 
 const GameLogSection = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-columns: minmax(auto, 1fr);
-    align-items: center;
-    grid-template-areas: 'col1 col2';
+    grid-template-columns: 1fr 1fr;  // This will ensure that each column takes half the width
+    align-items: start;  // Aligns items at the start of the grid area
+    gap: 20px;  // Adds space between the columns
+`;
+
+const GameInfoCard = styled.div`
+    background: #1b2838; // A subtly lighter shade of grey-blue
+    color: #ddd; // For readability against the darker background
+    padding: 20px 25px; // Increased padding for a more spacious feel
+    border-radius: 10px; // Rounded corners for a softer, modern look
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5); // Enhanced depth with a stronger shadow
+    margin: 10px 0; // Provides space between cards, adjust as needed
+    transition: transform 0.3s ease-in-out; // Smooth transition for hover effects
+
+    &:hover {
+        transform: scale(1.03); // Slight enlargement on hover for visual feedback
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6); // Increased shadow on hover for added depth
+    }
 `;
 
 const NewGameSection = styled.div`
@@ -48,119 +100,70 @@ const NewGameSection = styled.div`
     align-items: center;
 `;
 
-const Column1 = styled.div`
-    margin-bottom: 15px;
-    padding: 0 15px;
-    grid-area: col1;
-`;
-
-const TextContent = styled.div`
-    max-width: 540px;
-    padding-top: 0;
-    padding-bottom: 60px;
-`;
-
-const Column2 = styled.div`
-    margin-bottom: 15px;
-    padding: 0 15px;
-    grid-area: col2;
-`;
-
-const ImgContainer = styled.div`
-    max-width: 555px;
-    display: flex;
-    justify-content: flex-start;
-    margin-left: 35px;
-`;
-
 const Img = styled.img`
-    padding-right: 0;
-    border: 0;
-    max-width: 100%;
-    vertical-align: middle;
-    display: inline-block;
-    max-height: 500px;
+    width: 100%;
+    max-height: 500px;  // Limits the image height
+    object-fit: cover; 
 `;
 
-// const StyledTable = styled.table`
-//     width: 100%;
-//     border-collapse: collapse;
-//     color: #f7f8fa;
-// `;
-
-// const StyledTh = styled.th`
-//     border: 1px solid #ddd;
-//     padding: 8px;
-//     text-align: left;
-//     background-color: #4CAF50;
-//     color: white;
-// `;
-
-// const StyledTd = styled.td`
-//     border: 1px solid #ddd;
-//     padding: 8px;
-//     color: white;
-// `;
-
-const StyledTable = styled.table`
-    width: 600px;  // Adjust width as needed
-    margin: 0 auto; // Center table on the page
-    border-collapse: collapse;
-    border-spacing: 0 1em;
-    color: #f7f8fa;
-    font-size: 1rem;
-    table-layout: fixed; // Use this to keep columns fixed
-`;
-
-const StyledTh = styled.th`
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-    background-color: #4CAF50;
-    color: white;
-`;
-
-const StyledTd = styled.td`
-    border: 1px solid #ddd;
-    padding: 12px;
-    color: white;
-    word-wrap: break-word; // Prevents text from overflowing
-`;
-
-const AddDataDiv = styled.div`
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 24px;
-    color: #f7f8fa;
-`;
-
-const StyledButton = styled.button`
-    display: flex;
-    align-items: center;
-    border-radius: 50px;
-    background: #76e4e0;
-    white-space: nowrap;
-    padding: 10px 22px;
-    color: #000;
-    font-size: 16px;
-    outline: none;
+const StyledButton = styled(Button)`
+    background-color: #4a90e2; // A vibrant blue that stands out but still fits with the overall theme
+    color: white; // White text
     border: none;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    text-decoration: none;
+    padding: 10px 20px; // Padding for better touch area
+    border-radius: 5px; // Rounded corners
+    font-size: 16px; // Larger font size for readability
+    font-weight: bold; // Bold font for better visibility
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); // Subtle shadow for 3D effect
+    transition: all 0.3s ease-in-out; // Smooth transition for hover effects
+    margin-right: 5px; // Space between buttons
 
     &:hover {
-        transition: all 0.2s ease-in-out;
-        background: #abdae4;
-        color: #000;
+        background-color: #357abD; // Darker shade of the original color on hover
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); // Larger shadow on hover for a "lifted" effect
+        transform: translateY(-2px); // Slight raise on hover
+    }
+
+    &:active {
+        background-color: #303F9F; // Even darker for the active state
+        transform: translateY(1px); // Push down effect on click
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); // Reset shadow to original on click
     }
 `;
 
-const StyledInput = styled.input`
-    display: block;
-    margin: 20px 0;
-    padding: 10px;
-    font-size: 16px;
+const CardTitle = styled.h2`
+  color: #EAF0F1; // Brighter color for higher contrast
+  font-size: 22px; // Larger font size for titles
+  font-weight: bold; // Bold to make it stand out
+  margin-bottom: 8px; // Space below the title
+`;
+
+const Text = styled.p`
+  color: #CAD3C8; // Slightly lighter than the body text for differentiation
+  font-size: 16px; // Comfortable reading size
+  line-height: 1.4; // Adequate line spacing for readability
+  font-weight: bold; // Bold to make it stand out
+  margin-bottom: 5px; // Space between paragraphs
+`;
+
+const StyledInput = styled(Form.Control)`
+  background-color: #333; // Dark background for the input
+  color: #ddd; // Light color for the text
+  border: 1px solid #555; // Subtle border color
+  border-radius: 4px; // Rounded corners for a modern look
+  padding: 10px; // Adequate padding inside the inputs
+  margin-bottom: 15px; // Space below each input
+  margin-right: 5px; // Space between input and button
+
+  &:hover {
+    border-color: #777; // Change border on hover for a visual feedback
+  }
+
+  &:focus {
+    border-color: #abdae4; // Highlight color for focus
+    box-shadow: 0 0 5px rgba(171, 218, 228, 0.5); // Glow effect for focus
+    outline: none; // Remove default focus outline
+  }
 `;
 
 let drawLayers = false;
@@ -208,46 +211,31 @@ export default function MyData() {
             <HomeContainer>
                 <SectionContainer>
                     <NewGameSection id="add-data-section">
-                        <AddDataDiv>Add data</AddDataDiv>
-                        <StyledInput type="file" accept='.gpx' onChange={handleFileChange} />
-                        <TheMap gpxfile={file} thisEmail={email} setData={setData} />
+                        <UnifiedFormContainer>
+                            <StyledForm>
+                                <Form.Group controlId="fileUpload">
+                                    <Label>Upload GPX Data</Label>
+                                    <StyledInput type="file" accept=".gpx" onChange={handleFileChange} />
+                                    <StyledButton onClick={() => console.log('Processing GPX Data...')}>Upload</StyledButton>
+                                </Form.Group>
+                            </StyledForm>
+                            <TheMap gpxfile={file} thisEmail={email} setData={setData} />
+                        </UnifiedFormContainer>
                     </NewGameSection>
                 </SectionContainer>
             </HomeContainer>
             <HomeContainer>
                 <SectionContainer>
                     <GameLogSection id="my-data-section">
-                        <Column1>
-                            <TextContent>
-                                <StyledTable>
-                                    <thead>
-                                        <tr>
-                                            <StyledTh>Title</StyledTh>
-                                            <StyledTh>Date</StyledTh>
-                                            <StyledTh>Position</StyledTh> 
-                                            <StyledTh>View</StyledTh>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {data.map((val, key) => {
-                                            return (
-                                                <tr key={val.game_id}>
-                                                    <StyledTd>{val.game_title}</StyledTd>
-                                                    <StyledTd>{val.game_date}</StyledTd>
-                                                    <StyledTd>{val.position}</StyledTd>
-                                                    <StyledTd><StyledButton onClick={e => handleViewClick(e, val.game_id)}>View</StyledButton></StyledTd>
-                                                </tr>
-                                            )
-                                        })}
-                                    </tbody>
-                                </StyledTable>
-                            </TextContent>
-                        </Column1>
-                        <Column2>
-                            <ImgContainer>
-                                <Heatmap id={gameId}/>
-                            </ImgContainer>
-                        </Column2>
+                        {data.map(game => (
+                            <GameInfoCard key={game.game_id}>
+                                <CardTitle>{game.game_title}</CardTitle>
+                                <Text>{game.game_date}</Text>
+                                <Text>{game.position}</Text>
+                                {gameId != game.game_id && <StyledButton onClick={(e) => handleViewClick(e, game.game_id)}>View</StyledButton>}
+                                {gameId === game.game_id && <Heatmap id={game.game_id}/>}
+                            </GameInfoCard>                                
+                        ))}   
                     </GameLogSection>
                 </SectionContainer>
             </HomeContainer>
@@ -381,16 +369,15 @@ function TheMap(props) {
     }
 
     return (
-        <div>
-            <Form onSubmit={e => { SubmitGameData(e); setGameTitle(''); setPosition(''); setLatLngs(null); }}>
-
+        <>
+            <StyledForm onSubmit={e => { SubmitGameData(e); setGameTitle(''); setPosition(''); setLatLngs(null); }}>
                 <Form.Group className="mb-3" controlId="formGameTitle">
-                    <Form.Label>Game Title</Form.Label>
-                    <Form.Control style={{ color: 'black' }} placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
+                    <Label>Game Title</Label>
+                    <StyledInput style={{ background: '#333', color: '#ddd' }} placeholder="Enter title" value={gameTitle} onChange={e => setGameTitle(e.target.value)} />
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="formPosition">
-                    <Form.Label>Position</Form.Label>
-                    <Form.Control style={{ color: 'black' }} placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
+                    <Label>Position</Label>
+                    <StyledInput style={{ background: '#333', color: '#ddd' }} placeholder="Enter the position you played" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group>
                 {/* <Form.Group className="mb-3" controlId="formPosition">
                     <Form.Label>TimeStamp</Form.Label>
@@ -398,24 +385,25 @@ function TheMap(props) {
                     <Form.Control placeholder="Enter time (HH:MM:SS)" value={position} onChange={e => setPosition(e.target.value)} />
                 </Form.Group> */}
                 <br/>
-                <Button style={{ color: 'black' }} type="button" onClick={onSliderBtnClick} disabled={props.gpxfile === undefined ? true : false}>Add Slider</Button>
-                <Button style={{ color: 'black' }} type="button" onClick={onClearSlidersClick} disabled={props.gpxfile === undefined ? true : false}>Clear *ALL* Sliders</Button>
+                <StyledButton type="button" onClick={onSliderBtnClick} disabled={props.gpxfile === undefined ? true : false}>Add Slider</StyledButton>
+                <StyledButton type="button" onClick={onClearSlidersClick} disabled={props.gpxfile === undefined ? true : false}>Clear *ALL* Sliders</StyledButton>
 
                 <div id="sliders" padding="10px">
                     {sliderList}
                 </div>
                 <br/>
-                <Button style={{ color: 'black' }} variant="primary" type="submit">Submit New Game Data</Button>
-                <div id="map" padding={"10px"}>
+                <StyledButton type="submit">Submit New Game Data</StyledButton>
+                
+                <MapWrapper>
                     <MapContainer drawControl={true} center={[51.55613140200256, -0.27958551642058616]} zoom={17} scrollWheelZoom={false}>
                         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <AddGpx gpxfile={props.gpxfile} sendGpxElem={handleGpxElem} />
                         <DrawControls sendLatLngs={handleLatLngs} />
                     </MapContainer>
-                </div>
-            </Form>
-        </div>
+                </MapWrapper>
+            </StyledForm>
+        </>
 
     );
 }

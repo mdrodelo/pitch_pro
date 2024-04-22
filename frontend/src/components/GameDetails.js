@@ -5,37 +5,34 @@ import { LineGraph } from './Line'
 import client from "./api";
 
 const DetailsContainer = styled.div`
+    background: #1b2838; // A subtly lighter shade of grey-blue
     color: #fff;
-    background-color: #030c12;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
-    position: absolute;
-    color: #fff;
-    display: flex; // Use flexbox
-    flex-direction: column; // Stack children vertically
-    align-items: center; // Center children horizontally
-    overflow: auto; // Add this line to prevent overflow
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: auto;
+    padding: 20px;
 `;
 
 const Title = styled.h1`
-    color: #fff;
-    font-size: 6rem;
-    font-weight: 800;
+    font-size: 4rem;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+`;
+
+const Date = styled.h2`
+    font-size: 2rem;
+    font-weight: lighter;
     text-align: center;
     margin-top: 10px;
 `;
 
-const Date = styled.h2`
-    color: #fff;
-    font-size: 3rem;
-    font-weight: 800;
-    margin-top: 10px;
-`;
-
 const Position = styled.h2`
-    color: #fff;
-    font-size: 3rem;
-    font-weight: 800;
+    font-size: 2rem;
+    font-weight: lighter;
     text-align: center;
     margin-top: 10px;
 `;
@@ -50,36 +47,37 @@ const MidSection = styled.div`
 `;
 
 const Image = styled.img`
-    margin-top: 10px;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: auto;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 `;
 
 const ButtonToggle = styled.button`
-    border-radius: 50px;
-    background-color: ${props => props.selected ? '#abdae4' : 'black'};
-    z-index: 10;
-    white-space: nowrap;
-    padding: 10px 22px;
-    color: ${props => props.selected ? 'black' : 'white'};
+    border-radius: 30px;
+    background-color: ${props => props.selected ? '#abdae4' : '#333'};
+    padding: 10px 20px;
+    color: ${props => props.selected ? '#333' : '#fff'};
     font-size: 16px;
+    margin: 5px;
+    cursor: pointer;
     outline: none;
     border: none;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    text-decoration: none;
+    transition: background-color 0.3s, transform 0.3s;
 
     &:hover {
-        transition: all 0.2s ease-in-out;
-        background: #abdae4;
-        color: #000;
+        background-color: #abdae4;
+        color: #333;
+        transform: scale(1.05);
     }
 `;
 
 const ButtonContainer = styled.div`
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: center;
+    margin-top: 20px;
 `;
 
 const StyledLineGraph = styled(LineGraph)`
@@ -150,7 +148,7 @@ export default function GameDetails() {
                     selected={selected.section === 'HeartRate'}
                     onClick={() => setSelected({ section: 'HeartRate', heatmap: null })}
                 >
-                    Heart Rate
+                    Match Stats
                 </ButtonToggle>
                 <ButtonToggle 
                     selected={selected.section === 'HeatMap'}

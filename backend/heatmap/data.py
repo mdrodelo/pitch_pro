@@ -108,9 +108,9 @@ def draw_heatmap(gpx_df, field):
     scale_gpx(gpx_df, field_df)
     side_switch(gpx_df)
     pitch = VerticalPitch(pitch_type='custom', line_zorder=2, pitch_length=105, pitch_width=68,
-                          pitch_color='#030c12', line_color='#efefef')
+                          pitch_color='#1b2838', line_color='#efefef')
     fig, ax = pitch.draw(figsize=(8, 12))
-    fig.set_facecolor('#030c12')
+    fig.set_facecolor('#1b2838')
     bin_statistic = pitch.bin_statistic(gpx_df.Longitude, gpx_df.Latitude,
                                         statistic='count', bins=(50, 35))
     bin_statistic['statistic'] = gaussian_filter(bin_statistic['statistic'], 1)
